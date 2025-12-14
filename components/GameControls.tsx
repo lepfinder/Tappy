@@ -4,7 +4,20 @@ import { RotateCcw, Trophy, ArrowLeft, Flame, Gauge, Crosshair } from 'lucide-re
 import { TRANSLATIONS } from '../i18n';
 
 export const GameControls: React.FC = () => {
-  const { restartLevel, score, errors, exitGame, currentLevel, combo, startTime, correctKeystrokes, totalKeystrokes, language } = useGameStore();
+  const { 
+    restartLevel, 
+    score, 
+    exitGame, 
+    currentLevel, 
+    combo, 
+    startTime, 
+    correctKeystrokes, 
+    correctHanzi,
+    totalKeystrokes, 
+    language,
+    selectedMode
+  } = useGameStore();
+  
   const [wpm, setWpm] = useState(0);
   const t = TRANSLATIONS[language];
 
@@ -14,13 +27,24 @@ export const GameControls: React.FC = () => {
     const interval = setInterval(() => {
       const timeInMinutes = (Date.now() - startTime) / 60000;
       if (timeInMinutes > 0) {
-        // Standard WPM formula: (Total Correct Characters / 5) / Time in Minutes
-        const currentWpm = Math.round((correctKeystrokes / 5) / timeInMinutes);
-        setWpm(currentWpm);
+        let metric = 0;
+        
+        if (selectedMode === 'EN_LETTERS') {
+          // Calculate Keys Per Minute
+          metric = correctKeystrokes;
+        } else if (selectedMode?.includes('CN')) {
+          // Calculate Hanzi Per Minute
+          metric = correctHanzi;
+        } else {
+          // EN_WORDS, RACE_100M: Standard WPM (Keys / 5)
+          metric = correctKeystrokes / 5;
+        }
+        
+        setWpm(Math.round(metric / timeInMinutes));
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [startTime, correctKeystrokes]);
+  }, [startTime, correctKeystrokes, correctHanzi, selectedMode]);
 
   const accuracy = totalKeystrokes > 0 
     ? Math.round((correctKeystrokes / totalKeystrokes) * 100) 

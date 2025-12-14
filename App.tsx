@@ -1,6 +1,7 @@
 import React from 'react';
 import { VirtualKeyboard } from './components/VirtualKeyboard';
 import { TypingArea } from './components/TypingArea';
+import { RaceTrack } from './components/RaceTrack';
 import { GameControls } from './components/GameControls';
 import { HomeScreen } from './components/HomeScreen';
 import { LevelSelectScreen } from './components/LevelSelectScreen';
@@ -9,12 +10,14 @@ import { TRANSLATIONS } from './i18n';
 import { Languages } from 'lucide-react';
 
 const App: React.FC = () => {
-  const { view, language, setLanguage } = useGameStore();
+  const { view, language, setLanguage, selectedMode } = useGameStore();
   const t = TRANSLATIONS[language];
 
   const toggleLanguage = () => {
     setLanguage(language === 'en' ? 'cn' : 'en');
   };
+
+  const isRaceMode = selectedMode === 'RACE_100M';
 
   return (
     <div className="min-h-screen bg-kid-bg flex flex-col items-center py-8 px-4 font-sans text-gray-800 relative overflow-hidden transition-colors duration-500">
@@ -37,7 +40,7 @@ const App: React.FC = () => {
       </header>
 
       {/* Main Content Router */}
-      <main className="w-full max-w-5xl flex flex-col items-center gap-8 flex-grow relative z-10">
+      <main className="w-full max-w-7xl flex flex-col items-center gap-8 flex-grow relative z-10">
         
         {view === 'HOME' && <HomeScreen />}
         
@@ -47,12 +50,15 @@ const App: React.FC = () => {
           <div className="w-full flex flex-col items-center animate-slide-up">
             <GameControls />
             
-            <div className="w-full bg-white rounded-3xl shadow-xl p-8 mb-8 relative overflow-hidden border-4 border-gray-100 transition-all duration-300">
+            <div className={`
+              w-full max-w-5xl bg-white rounded-3xl shadow-xl p-8 mb-8 relative overflow-hidden border-4 border-gray-100 transition-all duration-300
+              ${isRaceMode ? 'bg-blue-50/30' : ''}
+            `}>
               {/* Decorative background blobs */}
               <div className="absolute top-[-50px] right-[-50px] w-32 h-32 bg-kid-green opacity-10 rounded-full blur-2xl pointer-events-none"></div>
               <div className="absolute bottom-[-50px] left-[-50px] w-40 h-40 bg-kid-red opacity-10 rounded-full blur-2xl pointer-events-none"></div>
               
-              <TypingArea />
+              {isRaceMode ? <RaceTrack /> : <TypingArea />}
             </div>
 
             <VirtualKeyboard />

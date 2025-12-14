@@ -3,6 +3,7 @@ import { LEVELS_EN_LETTERS } from "./data/en_letters";
 import { LEVELS_EN_WORDS } from "./data/en_words";
 import { LEVELS_CN_PINYIN } from "./data/cn_pinyin";
 import { LEVELS_CN_SENTENCES } from "./data/cn_sentences";
+import { LEVELS_RACE } from "./data/race_levels";
 
 // Base64 sounds
 export const SOUNDS = {
@@ -44,7 +45,8 @@ export const MODE_DATA_MAP = {
   'EN_LETTERS': LEVELS_EN_LETTERS,
   'EN_WORDS': LEVELS_EN_WORDS,
   'CN_PINYIN': LEVELS_CN_PINYIN,
-  'CN_SENTENCES': LEVELS_CN_SENTENCES
+  'CN_SENTENCES': LEVELS_CN_SENTENCES,
+  'RACE_100M': LEVELS_RACE
 };
 
 // Metadata now only holds visual styling. Text is in i18n.ts
@@ -53,4 +55,5 @@ export const MODES_METADATA: Record<GameMode, { color: string }> = {
   'EN_WORDS': { color: 'bg-kid-blue' },
   'CN_PINYIN': { color: 'bg-kid-green' },
   'CN_SENTENCES': { color: 'bg-kid-purple' },
+  'RACE_100M': { color: 'bg-orange-400' },
 };

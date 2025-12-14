@@ -25,7 +25,7 @@ export const TypingArea: React.FC = () => {
     const hasNext = currentLevel && availableLevels.findIndex(l => l.id === currentLevel.id) < availableLevels.length - 1;
 
     return (
-      <div className="flex flex-col items-center justify-center h-64 animate-bounce-short">
+      <div className="flex flex-col items-center justify-center h-64 animate-jump-once">
         <CheckCircle2 size={80} className="text-kid-green mb-4" />
         <h2 className="text-4xl font-cartoon text-kid-blue">{t.levelComplete}</h2>
         <p className="text-xl text-gray-500 mt-2">{t.greatJob}</p>

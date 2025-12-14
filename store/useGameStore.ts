@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { ChallengeItem, GameMode, Level, ViewState, Language } from '../types';
+import { ChallengeItem, GameMode, Level, ViewState, Language, Participant } from '../types';
 import { MODE_DATA_MAP } from '../constants';
 import { playSound } from '../utils/sound';
 
@@ -31,6 +31,11 @@ interface GameStore {
   startTime: number | null;
   totalKeystrokes: number;
   correctKeystrokes: number;
+  correctHanzi: number;
+
+  // Race State
+  raceStatus: 'idle' | 'countdown' | 'racing' | 'finished';
+  participants: Participant[];
 
   // Actions
   goHome: () => void;
@@ -42,7 +47,17 @@ interface GameStore {
   
   handleInput: (key: string) => void;
   nextChallenge: () => void;
+  
+  // Race Actions
+  startRace: () => void;
+  tickRace: (dt: number) => void;
 }
+
+const DEFAULT_BOTS: Participant[] = [
+  { id: 'bot1', name: 'Bot A', type: 'bot', progress: 0, speed: 3 }, // Slow
+  { id: 'bot2', name: 'Bot B', type: 'bot', progress: 0, speed: 5 }, // Medium
+  { id: 'bot3', name: 'Bot C', type: 'bot', progress: 0, speed: 7 }, // Fast
+];
 
 export const useGameStore = create<GameStore>((set, get) => ({
   language: 'en',
@@ -64,13 +79,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
   startTime: null,
   totalKeystrokes: 0,
   correctKeystrokes: 0,
+  correctHanzi: 0,
+  
+  raceStatus: 'idle',
+  participants: [],
 
   goHome: () => {
     set({ 
       view: 'HOME', 
       selectedMode: null, 
       availableLevels: [], 
-      isPlaying: false 
+      isPlaying: false,
+      raceStatus: 'idle'
     });
   },
 
@@ -84,11 +104,24 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   selectLevel: (levelId) => {
-    const { availableLevels } = get();
+    const { availableLevels, selectedMode } = get();
     const level = availableLevels.find(l => l.id === levelId);
     if (!level) return;
 
     playSound('click');
+    
+    // Prepare Race State if mode is Race
+    let raceStatePartial = {};
+    if (selectedMode === 'RACE_100M') {
+       raceStatePartial = {
+         raceStatus: 'countdown',
+         participants: [
+           { id: 'player', name: 'You', type: 'player', progress: 0, speed: 0 },
+           ...DEFAULT_BOTS.map(b => ({...b, progress: 0}))
+         ]
+       };
+    }
+
     set({
       view: 'GAME',
       currentLevel: level,
@@ -97,24 +130,63 @@ export const useGameStore = create<GameStore>((set, get) => ({
       currentSyllableIndex: 0,
       score: 0,
       errors: 0,
-      isPlaying: true,
+      isPlaying: true, // For normal modes, immediate play. Race waits for startRace() logic or countdown effect in component
       lastInputError: false,
       combo: 0,
       maxCombo: 0,
       startTime: null,
       totalKeystrokes: 0,
-      correctKeystrokes: 0
+      correctKeystrokes: 0,
+      correctHanzi: 0,
+      ...raceStatePartial
     });
   },
 
+  startRace: () => {
+     set({ raceStatus: 'racing', startTime: Date.now() });
+  },
+
+  tickRace: (dt: number) => {
+    // dt in seconds
+    const { raceStatus, participants } = get();
+    if (raceStatus !== 'racing') return;
+
+    let anyoneFinished = false;
+
+    const newParticipants = participants.map(p => {
+      if (p.type === 'player' || p.progress >= 100) return p;
+
+      // Bot logic: move forward based on speed + random jitter
+      const jitter = Math.random() * 2; 
+      const move = (p.speed + jitter) * dt; 
+      const newProgress = Math.min(100, p.progress + move);
+
+      if (newProgress >= 100) anyoneFinished = true;
+      return { ...p, progress: newProgress };
+    });
+
+    set({ participants: newParticipants });
+  },
+
   exitGame: () => {
-    set({ view: 'LEVELS', isPlaying: false, currentLevel: null });
+    set({ view: 'LEVELS', isPlaying: false, currentLevel: null, raceStatus: 'idle' });
   },
 
   restartLevel: () => {
-    const { currentLevel } = get();
+    const { currentLevel, selectedMode } = get();
     if (!currentLevel) return;
     
+    let raceStatePartial = {};
+    if (selectedMode === 'RACE_100M') {
+       raceStatePartial = {
+         raceStatus: 'countdown',
+         participants: [
+           { id: 'player', name: 'You', type: 'player', progress: 0, speed: 0 },
+           ...DEFAULT_BOTS.map(b => ({...b, progress: 0}))
+         ]
+       };
+    }
+
     set({
       currentChallengeIndex: 0,
       typedHistory: '',
@@ -127,7 +199,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       maxCombo: 0,
       startTime: null,
       totalKeystrokes: 0,
-      correctKeystrokes: 0
+      correctKeystrokes: 0,
+      correctHanzi: 0,
+      ...raceStatePartial
     });
   },
 
@@ -145,12 +219,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   nextChallenge: () => {
-    const { currentChallengeIndex, currentLevel } = get();
+    const { currentChallengeIndex, currentLevel, selectedMode } = get();
     if (!currentLevel) return;
 
-    if (currentChallengeIndex + 1 >= currentLevel.challenges.length) {
+    const isLast = currentChallengeIndex + 1 >= currentLevel.challenges.length;
+
+    if (isLast) {
       playSound('win');
-      set({ view: 'RESULT', isPlaying: false });
+      if (selectedMode === 'RACE_100M') {
+         set({ raceStatus: 'finished', view: 'RESULT', isPlaying: false });
+         // Force player progress to 100 in case of rounding
+         const { participants } = get();
+         set({ participants: participants.map(p => p.type === 'player' ? { ...p, progress: 100 } : p) });
+      } else {
+         set({ view: 'RESULT', isPlaying: false });
+      }
     } else {
       playSound('success');
       set({
@@ -159,25 +242,40 @@ export const useGameStore = create<GameStore>((set, get) => ({
         currentSyllableIndex: 0,
         lastInputError: false
       });
+      
+      // For Race Mode, calculate progress purely on index advancement
+      if (selectedMode === 'RACE_100M') {
+        const { participants } = get();
+        const total = currentLevel.challenges.length;
+        const progress = ((currentChallengeIndex + 1) / total) * 100;
+        
+        set({
+           participants: participants.map(p => 
+             p.type === 'player' ? { ...p, progress: progress } : p
+           )
+        });
+      }
     }
   },
 
   handleInput: (key: string) => {
-    const { isPlaying, currentLevel, currentChallengeIndex, selectedMode, typedHistory, currentSyllableIndex, nextChallenge, startTime } = get();
+    const { isPlaying, currentLevel, currentChallengeIndex, selectedMode, typedHistory, currentSyllableIndex, nextChallenge, startTime, raceStatus } = get();
     
+    // In race mode, ignore input if not in 'racing' state
+    if (selectedMode === 'RACE_100M' && raceStatus !== 'racing') return;
     if (!isPlaying || !currentLevel) return;
 
     const currentItem = currentLevel.challenges[currentChallengeIndex];
     const normalizedKey = key.toLowerCase();
     
-    // Start timer on first input
     const newStartTime = startTime || Date.now();
 
     const handleSuccess = () => {
       playSound('click');
       const newHistory = typedHistory + normalizedKey;
       const newCombo = get().combo + 1;
-      set({ 
+      
+      let stateUpdate: any = { 
         typedHistory: newHistory, 
         lastInputError: false, 
         score: get().score + 10,
@@ -186,7 +284,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
         totalKeystrokes: get().totalKeystrokes + 1,
         correctKeystrokes: get().correctKeystrokes + 1,
         startTime: newStartTime
-      });
+      };
+      
+      set(stateUpdate);
       return newHistory;
     };
 
@@ -195,22 +295,24 @@ export const useGameStore = create<GameStore>((set, get) => ({
       set({ 
         errors: get().errors + 1, 
         lastInputError: true,
-        combo: 0, // Reset combo
+        combo: 0, 
         totalKeystrokes: get().totalKeystrokes + 1,
         startTime: newStartTime
       });
       setTimeout(() => set({ lastInputError: false }), 400);
     };
 
-    // -- LOGIC: ENGLISH MODES --
-    if (selectedMode === 'EN_LETTERS' || selectedMode === 'EN_WORDS') {
+    // -- LOGIC: ENGLISH MODES & RACE --
+    if (selectedMode === 'EN_LETTERS' || selectedMode === 'EN_WORDS' || selectedMode === 'RACE_100M') {
       const targetStr = currentItem.display.toLowerCase();
       const nextChar = targetStr[typedHistory.length];
 
       if (normalizedKey === nextChar) {
         const newHistory = handleSuccess();
         if (newHistory.length === targetStr.length) {
-          setTimeout(() => nextChallenge(), 200);
+          // In race mode, instant transition
+          const delay = selectedMode === 'RACE_100M' ? 50 : 200;
+          setTimeout(() => nextChallenge(), delay);
         }
       } else {
         handleError();
@@ -225,6 +327,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if (normalizedKey === expectedChar) {
         const newHistory = handleSuccess();
         if (newHistory === currentTargetSyllable) {
+          // Syllable completed! (Equivalent to 1 Hanzi)
+          set({ correctHanzi: get().correctHanzi + 1 });
+
           if (currentSyllableIndex + 1 >= syllables.length) {
              setTimeout(() => nextChallenge(), 200);
           } else {

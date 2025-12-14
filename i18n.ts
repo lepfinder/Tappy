@@ -19,11 +19,16 @@ export const TRANSLATIONS = {
     levelComplete: "Level Complete!",
     greatJob: "You did great!",
     space: "SPACE",
+    raceStart: "Get Ready...",
+    raceGo: "GO!",
+    rank: "Rank",
+    you: "You",
     modes: {
       EN_LETTERS: { title: 'ABC Practice', desc: 'Learn where the keys are' },
       EN_WORDS: { title: 'English Words', desc: 'Type fun words' },
       CN_PINYIN: { title: 'Pinyin Fun', desc: 'Pinyin & Characters' },
       CN_SENTENCES: { title: 'Chinese Phrases', desc: 'Type full sentences' },
+      RACE_100M: { title: '100m Race', desc: 'Type fast to win!' },
     } as Record<GameMode, { title: string; desc: string }>
   },
   cn: {
@@ -44,11 +49,16 @@ export const TRANSLATIONS = {
     levelComplete: "关卡完成！",
     greatJob: "做得太棒了！",
     space: "空格",
+    raceStart: "准备...",
+    raceGo: "开始!",
+    rank: "排名",
+    you: "你",
     modes: {
       EN_LETTERS: { title: '字母练习', desc: '熟悉键盘位置' },
       EN_WORDS: { title: '英文单词', desc: '练习有趣的单词' },
       CN_PINYIN: { title: '拼音乐趣', desc: '拼音和汉字' },
       CN_SENTENCES: { title: '中文短句', desc: '练习输入完整句子' },
+      RACE_100M: { title: '百米竞速', desc: '打字越快跑得越快！' },
     } as Record<GameMode, { title: string; desc: string }>
   }
 };

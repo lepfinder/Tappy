@@ -4,7 +4,8 @@ export type GameMode =
   | 'EN_LETTERS' 
   | 'EN_WORDS' 
   | 'CN_PINYIN' 
-  | 'CN_SENTENCES';
+  | 'CN_SENTENCES'
+  | 'RACE_100M';
 
 export type ViewState = 'HOME' | 'LEVELS' | 'GAME' | 'RESULT';
 export type Language = 'en' | 'cn';
@@ -21,6 +22,15 @@ export interface Level {
   description: string;
   difficulty: number; // 1-3 stars visual
   challenges: ChallengeItem[];
+}
+
+export interface Participant {
+  id: string;
+  name: string;
+  type: 'player' | 'bot';
+  progress: number; // 0 to 100
+  speed: number;    // Arbitrary speed factor for bots
+  finishedRank?: number;
 }
 
 export interface GameState {
@@ -55,4 +65,9 @@ export interface GameState {
   startTime: number | null;
   totalKeystrokes: number;
   correctKeystrokes: number;
+  correctHanzi: number; // New: Track completed Chinese characters
+
+  // Race Specific
+  raceStatus: 'idle' | 'countdown' | 'racing' | 'finished';
+  participants: Participant[];
 }
