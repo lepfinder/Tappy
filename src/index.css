@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@theme {
+    /* Font families */
+    --font-sans: 'Nunito', sans-serif;
+    --font-cartoon: 'Zcool KuaiLe', cursive, sans-serif;
+
+    /* Kid-friendly colors */
+    --color-kid-yellow: #FFD93D;
+    --color-kid-red: #FF6B6B;
+    --color-kid-blue: #4D96FF;
+    --color-kid-green: #6BCB77;
+    --color-kid-purple: #9B59B6;
+    --color-kid-bg: #F7F9FC;
+
+    /* Custom animations */
+    --animate-bounce-short: bounce 0.5s infinite;
+    --animate-jump-once: jump 0.5s ease-in-out 1;
+    --animate-pulse-fast: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    --animate-shake: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+    --animate-slide-up: slideUp 0.5s ease-out forwards;
+    --animate-fade-in: fadeIn 0.5s ease-out forwards;
+}
+
+/* Custom keyframes */
+@keyframes shake {
+
+    10%,
+    90% {
+        transform: translate3d(-1px, 0, 0);
+    }
+
+    20%,
+    80% {
+        transform: translate3d(2px, 0, 0);
+    }
+
+    30%,
+    50%,
+    70% {
+        transform: translate3d(-4px, 0, 0);
+    }
+
+    40%,
+    60% {
+        transform: translate3d(4px, 0, 0);
+    }
+}
+
+@keyframes jump {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-20px);
+    }
+}
+
+@keyframes slideUp {
+    0% {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+body {
+    background-color: #F7F9FC;
+}

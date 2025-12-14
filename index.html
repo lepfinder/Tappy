@@ -1,84 +1,17 @@
-
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- CSP: Allow unsafe-eval because Tailwind CDN requires it for JIT compilation in browser -->
-    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
-    <title>KidType Fun</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&family=Zcool+KuaiLe&display=swap" rel="stylesheet">
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Nunito', 'sans-serif'],
-              cartoon: ['"Zcool KuaiLe"', 'cursive', 'sans-serif'],
-            },
-            colors: {
-              kid: {
-                yellow: '#FFD93D',
-                red: '#FF6B6B',
-                blue: '#4D96FF',
-                green: '#6BCB77',
-                purple: '#9B59B6',
-                bg: '#F7F9FC'
-              }
-            },
-            animation: {
-              'bounce-short': 'bounce 0.5s infinite',
-              'jump-once': 'jump 0.5s ease-in-out 1',
-              'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-              'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both',
-              'slide-up': 'slideUp 0.5s ease-out forwards',
-              'fade-in': 'fadeIn 0.5s ease-out forwards',
-            },
-            keyframes: {
-              shake: {
-                '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
-                '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
-                '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
-                '40%, 60%': { transform: 'translate3d(4px, 0, 0)' }
-              },
-              jump: {
-                '0%, 100%': { transform: 'translateY(0)' },
-                '50%': { transform: 'translateY(-20px)' },
-              },
-              slideUp: {
-                '0%': { transform: 'translateY(20px)', opacity: '0' },
-                '100%': { transform: 'translateY(0)', opacity: '1' },
-              },
-              fadeIn: {
-                '0%': { opacity: '0' },
-                '100%': { opacity: '1' },
-              }
-            }
-          }
-        }
-      }
-    </script>
-    <style>
-      body {
-        background-color: #F7F9FC;
-        /* Allow default scrolling behavior */
-      }
-    </style>
-  <script type="importmap">
-{
-  "imports": {
-    "lucide-react": "https://esm.sh/lucide-react@^0.561.0",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "zustand": "https://esm.sh/zustand@^5.0.9"
-  }
-}
-</script>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KidType Fun</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&family=Zcool+KuaiLe&display=swap"
+    rel="stylesheet">
 </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
-  </body>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+
 </html>
