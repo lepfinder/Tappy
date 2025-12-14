@@ -13,6 +13,16 @@
     --color-kid-purple: #9B59B6;
     --color-kid-bg: #F7F9FC;
 
+    /* Card colors matching design */
+    --color-card-yellow: #FFD93D;
+    --color-card-blue: #4D96FF;
+    --color-card-purple: #B794F6;
+    --color-card-green: #6BCB77;
+    --color-card-coral: #FF8B8B;
+    --color-card-teal: #4DD4AC;
+    --color-card-orange: #FFB366;
+    --color-card-mint: #A3E4D7;
+
     /* Custom animations */
     --animate-bounce-short: bounce 0.5s infinite;
     --animate-jump-once: jump 0.5s ease-in-out 1;
@@ -20,6 +30,8 @@
     --animate-shake: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
     --animate-slide-up: slideUp 0.5s ease-out forwards;
     --animate-fade-in: fadeIn 0.5s ease-out forwards;
+    --animate-float: float 3s ease-in-out infinite;
+    --animate-twinkle: twinkle 2s ease-in-out infinite;
 }
 
 /* Custom keyframes */
@@ -81,6 +93,59 @@
     }
 }
 
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(0deg);
+    }
+
+    50% {
+        transform: translateY(-10px) rotate(5deg);
+    }
+}
+
+@keyframes twinkle {
+
+    0%,
+    100% {
+        opacity: 0.3;
+        transform: scale(0.8);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+}
+
+/* Gradient background matching design */
 body {
-    background-color: #F7F9FC;
+    background: linear-gradient(135deg, #fce4ec 0%, #e3f2fd 50%, #f3e5f5 100%);
+    min-height: 100vh;
+}
+
+/* Floating decorative elements */
+.star-decoration {
+    position: fixed;
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.star-decoration::before {
+    content: '★';
+    font-size: 1.5rem;
+    color: #FFD93D;
+}
+
+.heart-decoration {
+    position: fixed;
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+.heart-decoration::before {
+    content: '♥';
+    font-size: 1rem;
+    color: #FF8B8B;
 }

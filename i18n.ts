@@ -3,7 +3,7 @@ import { GameMode } from "./types";
 
 export const TRANSLATIONS = {
   en: {
-    appTitle: "KidType Fun",
+    appTitle: "Tappy",
     subtitle: "Learn to type",
     selectMode: "Select a Game Mode",
     chooseLevel: "Choose a level",
@@ -45,7 +45,7 @@ export const TRANSLATIONS = {
     } as Record<GameMode, { title: string; desc: string }>
   },
   cn: {
-    appTitle: "快乐打字",
+    appTitle: "Tappy",
     subtitle: "打字启蒙",
     selectMode: "选择游戏模式",
     chooseLevel: "选择关卡",
