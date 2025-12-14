@@ -1,10 +1,14 @@
+
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
 export type GameMode = 
   | 'EN_LETTERS' 
   | 'EN_WORDS' 
+  | 'EN_ESSAYS'
   | 'CN_PINYIN' 
   | 'CN_SENTENCES'
+  | 'CN_ESSAYS'
+  | 'CN_POEMS'
   | 'RACE_100M';
 
 export type ViewState = 'HOME' | 'LEVELS' | 'GAME' | 'RESULT';
@@ -21,6 +25,7 @@ export interface Level {
   title: string;
   description: string;
   difficulty: number; // 1-3 stars visual
+  tags?: string[]; // e.g. ['grade-1', 'semester-1']
   challenges: ChallengeItem[];
 }
 
@@ -40,6 +45,7 @@ export interface GameState {
   // Navigation State
   view: ViewState;
   selectedMode: GameMode | null;
+  selectedGrade: number; // New: For Poem/Essay filtering
   
   // Data for the current flow
   availableLevels: Level[];

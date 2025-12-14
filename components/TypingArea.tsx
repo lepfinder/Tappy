@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { TRANSLATIONS } from '../i18n';
@@ -65,6 +66,9 @@ export const TypingArea: React.FC = () => {
 
   const currentItem = currentLevel.challenges[currentChallengeIndex];
 
+  // Helper to determine if we use English or Chinese renderer
+  const isEnglishMode = selectedMode === 'EN_LETTERS' || selectedMode === 'EN_WORDS' || selectedMode === 'EN_ESSAYS';
+
   return (
     <>
       {/* Progress Bar */}
@@ -81,18 +85,26 @@ export const TypingArea: React.FC = () => {
       </div>
 
       {/* --- ENGLISH RENDERER --- */}
-      {(selectedMode === 'EN_LETTERS' || selectedMode === 'EN_WORDS') && (() => {
+      {isEnglishMode && (() => {
         const chars = currentItem.display.split('');
+        const isEssay = selectedMode === 'EN_ESSAYS';
+        // Smaller font for essays to fit sentences better
+        const fontSizeClass = isEssay ? 'text-3xl md:text-5xl' : 'text-5xl md:text-6xl';
+        
         return (
-          <div className="flex flex-col items-center justify-center h-64">
+          <div className="flex flex-col items-center justify-center min-h-64 py-8 px-4">
             {/* Visual cue for meaning */}
             {currentItem.translation && (
-              <div className="text-2xl text-gray-400 font-cartoon mb-4 animate-pulse">
+              <div className={`text-gray-400 font-cartoon mb-4 animate-pulse ${isEssay ? 'text-lg md:text-xl' : 'text-2xl'}`}>
                 {currentItem.translation}
               </div>
             )}
             
-            <div className={`flex gap-1 text-6xl font-mono font-bold transition-transform ${lastInputError ? 'animate-shake text-red-500' : ''}`}>
+            <div className={`
+              flex flex-wrap justify-center gap-1 font-mono font-bold transition-transform 
+              ${fontSizeClass}
+              ${lastInputError ? 'animate-shake text-red-500' : ''}
+            `}>
               {chars.map((char, idx) => {
                 let statusClass = 'text-gray-300'; // Untyped
                 if (idx < typedHistory.length) {
@@ -100,6 +112,16 @@ export const TypingArea: React.FC = () => {
                 } else if (idx === typedHistory.length) {
                   statusClass = 'text-kid-blue border-b-4 border-kid-blue'; // Current cursor
                 }
+                
+                // Handle spaces specifically to ensure they have width
+                if (char === ' ') {
+                   return (
+                     <span key={idx} className={`${statusClass} w-4 md:w-6 inline-block`}>
+                       &nbsp;
+                     </span>
+                   );
+                }
+
                 return (
                   <span key={idx} className={statusClass}>
                     {char}
@@ -112,22 +134,27 @@ export const TypingArea: React.FC = () => {
       })()}
 
       {/* --- CHINESE RENDERER --- */}
-      {!(selectedMode === 'EN_LETTERS' || selectedMode === 'EN_WORDS') && (() => {
+      {!isEnglishMode && (() => {
         const syllables = currentItem.pinyin || [];
         const chars = currentItem.display.split(''); // Hanzi characters
 
         return (
-          <div className="flex flex-col items-center justify-center h-64">
-            <div className={`flex gap-6 ${lastInputError ? 'animate-shake' : ''}`}>
+          <div className="flex flex-col items-center justify-center min-h-64 py-10">
+            <div className={`
+              flex flex-wrap justify-center 
+              gap-x-2 md:gap-x-6 gap-y-8 
+              px-2 md:px-4 w-full
+              ${lastInputError ? 'animate-shake' : ''}
+            `}>
               {chars.map((hanzi, charIdx) => {
-                const syllable = syllables[charIdx];
+                const syllable = syllables[charIdx] || ''; // Fallback for safety
                 const isCompletedSyllable = charIdx < currentSyllableIndex;
                 const isCurrentSyllable = charIdx === currentSyllableIndex;
                 
                 return (
                   <div key={charIdx} className="flex flex-col items-center">
                     {/* Pinyin Layer */}
-                    <div className="text-3xl font-mono mb-2 h-10 tracking-wider">
+                    <div className="text-3xl font-mono mb-2 h-10 tracking-wider whitespace-nowrap">
                       {syllable.split('').map((letter, letterIdx) => {
                         let letterClass = 'text-gray-300';
                         
@@ -147,7 +174,7 @@ export const TypingArea: React.FC = () => {
 
                     {/* Hanzi Layer */}
                     <div className={`
-                      text-7xl font-cartoon transition-all duration-300
+                      text-5xl md:text-7xl font-cartoon transition-all duration-300
                       ${isCompletedSyllable ? 'text-kid-purple scale-110' : 'text-gray-200'}
                       ${isCurrentSyllable ? 'text-gray-400' : ''}
                     `}>
@@ -157,9 +184,11 @@ export const TypingArea: React.FC = () => {
                 );
               })}
             </div>
-            <div className="mt-8 text-xl text-gray-400 font-bold">
-              {currentItem.translation}
-            </div>
+            {currentItem.translation && (
+              <div className="mt-12 text-xl text-gray-400 font-bold text-center px-4">
+                {currentItem.translation}
+              </div>
+            )}
           </div>
         );
       })()}

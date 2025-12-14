@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { KEYBOARD_ROWS, FINGER_MAP, FINGER_COLORS } from '../constants';
 import { useGameStore } from '../store/useGameStore';
@@ -22,7 +23,7 @@ export const VirtualKeyboard: React.FC = () => {
   if (isPlaying && currentLevel && currentLevel.challenges[currentChallengeIndex]) {
     const currentItem = currentLevel.challenges[currentChallengeIndex];
     
-    if (selectedMode?.startsWith('EN')) {
+    if (selectedMode?.startsWith('EN') || selectedMode === 'RACE_100M') {
       expectedKey = currentItem.display[typedHistory.length]?.toLowerCase();
     } else {
       // Chinese Mode Logic
@@ -37,7 +38,10 @@ export const VirtualKeyboard: React.FC = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isPlaying) return;
-      if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) {
+      
+      // Allow letters, numbers, spaces, and basic punctuation
+      // We check for length 1 to avoid control keys like 'Enter', 'Backspace', etc.
+      if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
         handleInput(e.key);
       }
     };
@@ -83,9 +87,15 @@ export const VirtualKeyboard: React.FC = () => {
         ))}
       </div>
       
-      {/* Spacebar Row - Just decorative for this app mostly */}
+      {/* Spacebar Row - Decorative and functional visual indicator for Space */}
       <div className="flex justify-center mt-2">
-         <div className="w-64 h-12 bg-white rounded-xl border-b-4 border-gray-300 flex items-center justify-center text-gray-300 text-sm font-bold tracking-widest">
+         <div className={`
+           w-64 h-12 rounded-xl border-b-4 flex items-center justify-center text-sm font-bold tracking-widest transition-all
+           ${expectedKey === ' ' 
+             ? 'bg-yellow-200 border-yellow-400 ring-4 ring-yellow-300 ring-opacity-50 -translate-y-1 scale-105' 
+             : 'bg-white border-gray-300 text-gray-300'
+           }
+         `}>
            {t.space}
          </div>
       </div>

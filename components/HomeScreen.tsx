@@ -1,9 +1,10 @@
+
 import React from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { MODES_METADATA } from '../constants';
 import { TRANSLATIONS } from '../i18n';
 import { GameMode } from '../types';
-import { Settings2, Keyboard, Flag } from 'lucide-react';
+import { Settings2, Keyboard, Flag, ScrollText } from 'lucide-react';
 
 export const HomeScreen: React.FC = () => {
   const { selectMode, language } = useGameStore();
@@ -11,14 +12,15 @@ export const HomeScreen: React.FC = () => {
 
   const getIcon = (mode: GameMode) => {
     if (mode === 'RACE_100M') return <Flag size={32} />;
+    if (mode === 'CN_POEMS') return <ScrollText size={32} />;
     if (mode.includes('CN')) return <Settings2 size={32} />;
     return <Keyboard size={32} />;
   };
 
   return (
-    <div className="w-full max-w-6xl animate-fade-in">
+    <div className="w-full max-w-7xl animate-fade-in">
       <h2 className="text-3xl font-cartoon text-gray-500 text-center mb-8">{t.selectMode}</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full px-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full px-4">
         {(Object.keys(MODES_METADATA) as GameMode[]).map((m) => {
           const meta = MODES_METADATA[m];
           const text = t.modes[m];

@@ -20,7 +20,7 @@ const App: React.FC = () => {
   const isRaceMode = selectedMode === 'RACE_100M';
 
   return (
-    <div className="min-h-screen bg-kid-bg flex flex-col items-center py-8 px-4 font-sans text-gray-800 relative overflow-hidden transition-colors duration-500">
+    <div className="min-h-screen bg-kid-bg flex flex-col items-center py-8 px-4 font-sans text-gray-800 relative overflow-x-hidden transition-colors duration-500">
       
       {/* Language Switcher */}
       <button 

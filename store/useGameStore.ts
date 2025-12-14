@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { ChallengeItem, GameMode, Level, ViewState, Language, Participant } from '../types';
 import { MODE_DATA_MAP } from '../constants';
@@ -11,6 +12,7 @@ interface GameStore {
   // Navigation
   view: ViewState;
   selectedMode: GameMode | null;
+  selectedGrade: number;
   availableLevels: Level[];
   
   // Game Session
@@ -40,6 +42,7 @@ interface GameStore {
   // Actions
   goHome: () => void;
   selectMode: (mode: GameMode) => void;
+  setGrade: (grade: number) => void;
   selectLevel: (levelId: string) => void;
   restartLevel: () => void;
   nextLevel: () => void;
@@ -65,6 +68,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   view: 'HOME',
   selectedMode: null,
+  selectedGrade: 1,
   availableLevels: [],
   currentLevel: null,
   currentChallengeIndex: 0,
@@ -96,10 +100,31 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   selectMode: (mode) => {
     const levels = MODE_DATA_MAP[mode];
+    
+    // Default filter for poems and essays: Grade 1
+    let filteredLevels = levels;
+    if (mode === 'CN_POEMS' || mode === 'CN_ESSAYS') {
+      filteredLevels = levels.filter(l => l.tags?.includes(`grade-1`));
+    }
+
     set({
       view: 'LEVELS',
       selectedMode: mode,
-      availableLevels: levels
+      availableLevels: filteredLevels,
+      selectedGrade: 1
+    });
+  },
+
+  setGrade: (grade) => {
+    const { selectedMode } = get();
+    if (selectedMode !== 'CN_POEMS' && selectedMode !== 'CN_ESSAYS') return;
+
+    const allItems = MODE_DATA_MAP[selectedMode];
+    const filtered = allItems.filter(l => l.tags?.includes(`grade-${grade}`));
+
+    set({
+      selectedGrade: grade,
+      availableLevels: filtered
     });
   },
 
@@ -302,8 +327,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       setTimeout(() => set({ lastInputError: false }), 400);
     };
 
-    // -- LOGIC: ENGLISH MODES & RACE --
-    if (selectedMode === 'EN_LETTERS' || selectedMode === 'EN_WORDS' || selectedMode === 'RACE_100M') {
+    // -- LOGIC: ENGLISH MODES, ESSAYS & RACE --
+    if (selectedMode === 'EN_LETTERS' || selectedMode === 'EN_WORDS' || selectedMode === 'EN_ESSAYS' || selectedMode === 'RACE_100M') {
       const targetStr = currentItem.display.toLowerCase();
       const nextChar = targetStr[typedHistory.length];
 
@@ -322,9 +347,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     else {
       const syllables = currentItem.pinyin || [];
       const currentTargetSyllable = syllables[currentSyllableIndex];
-      const expectedChar = currentTargetSyllable[typedHistory.length];
+      const expectedChar = currentTargetSyllable ? currentTargetSyllable[typedHistory.length] : undefined;
 
-      if (normalizedKey === expectedChar) {
+      if (expectedChar && normalizedKey === expectedChar) {
         const newHistory = handleSuccess();
         if (newHistory === currentTargetSyllable) {
           // Syllable completed! (Equivalent to 1 Hanzi)

@@ -1,3 +1,4 @@
+
 import { GameMode } from "./types";
 
 export const TRANSLATIONS = {
@@ -23,11 +24,23 @@ export const TRANSLATIONS = {
     raceGo: "GO!",
     rank: "Rank",
     you: "You",
+    grade: "Grade",
+    grades: {
+      1: "Grade 1",
+      2: "Grade 2",
+      3: "Grade 3",
+      4: "Grade 4",
+      5: "Grade 5",
+      6: "Grade 6",
+    },
     modes: {
       EN_LETTERS: { title: 'ABC Practice', desc: 'Learn where the keys are' },
       EN_WORDS: { title: 'English Words', desc: 'Type fun words' },
+      EN_ESSAYS: { title: 'English Stories', desc: 'Read & Type Short Stories' },
       CN_PINYIN: { title: 'Pinyin Fun', desc: 'Pinyin & Characters' },
       CN_SENTENCES: { title: 'Chinese Phrases', desc: 'Type full sentences' },
+      CN_ESSAYS: { title: 'Short Essays', desc: 'Read & Type Stories' },
+      CN_POEMS: { title: 'Ancient Poems', desc: 'Learn Elementary Poems' },
       RACE_100M: { title: '100m Race', desc: 'Type fast to win!' },
     } as Record<GameMode, { title: string; desc: string }>
   },
@@ -37,7 +50,7 @@ export const TRANSLATIONS = {
     selectMode: "选择游戏模式",
     chooseLevel: "选择关卡",
     level: "关卡",
-    levelLabel: "关卡",
+    levelLabel: "第",
     wpm: "速度",
     accuracy: "准确率",
     combo: "连击",
@@ -46,18 +59,30 @@ export const TRANSLATIONS = {
     replay: "重玩",
     levels: "列表",
     next: "下一关",
-    levelComplete: "关卡完成！",
+    levelComplete: "挑战完成！",
     greatJob: "做得太棒了！",
     space: "空格",
     raceStart: "准备...",
     raceGo: "开始!",
     rank: "排名",
     you: "你",
+    grade: "年级",
+    grades: {
+      1: "一年级",
+      2: "二年级",
+      3: "三年级",
+      4: "四年级",
+      5: "五年级",
+      6: "六年级",
+    },
     modes: {
       EN_LETTERS: { title: '字母练习', desc: '熟悉键盘位置' },
       EN_WORDS: { title: '英文单词', desc: '练习有趣的单词' },
+      EN_ESSAYS: { title: '英文短文', desc: '阅读并拼写简短故事' },
       CN_PINYIN: { title: '拼音乐趣', desc: '拼音和汉字' },
       CN_SENTENCES: { title: '中文短句', desc: '练习输入完整句子' },
+      CN_ESSAYS: { title: '小学短文', desc: '人教版语文美文欣赏' },
+      CN_POEMS: { title: '小学古诗', desc: '必背古诗词练习' },
       RACE_100M: { title: '百米竞速', desc: '打字越快跑得越快！' },
     } as Record<GameMode, { title: string; desc: string }>
   }

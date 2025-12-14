@@ -1,9 +1,13 @@
+
 import { GameMode } from "./types";
 import { LEVELS_EN_LETTERS } from "./data/en_letters";
 import { LEVELS_EN_WORDS } from "./data/en_words";
+import { LEVELS_EN_ESSAYS } from "./data/en_essays";
 import { LEVELS_CN_PINYIN } from "./data/cn_pinyin";
 import { LEVELS_CN_SENTENCES } from "./data/cn_sentences";
 import { LEVELS_RACE } from "./data/race_levels";
+import { LEVELS_CN_POEMS } from "./data/cn_poems";
+import { LEVELS_CN_ESSAYS } from "./data/cn_essays";
 
 // Base64 sounds
 export const SOUNDS = {
@@ -44,8 +48,11 @@ export const FINGER_COLORS: Record<string, string> = {
 export const MODE_DATA_MAP = {
   'EN_LETTERS': LEVELS_EN_LETTERS,
   'EN_WORDS': LEVELS_EN_WORDS,
+  'EN_ESSAYS': LEVELS_EN_ESSAYS,
   'CN_PINYIN': LEVELS_CN_PINYIN,
   'CN_SENTENCES': LEVELS_CN_SENTENCES,
+  'CN_ESSAYS': LEVELS_CN_ESSAYS,
+  'CN_POEMS': LEVELS_CN_POEMS,
   'RACE_100M': LEVELS_RACE
 };
 
@@ -53,7 +60,10 @@ export const MODE_DATA_MAP = {
 export const MODES_METADATA: Record<GameMode, { color: string }> = {
   'EN_LETTERS': { color: 'bg-kid-yellow' },
   'EN_WORDS': { color: 'bg-kid-blue' },
+  'EN_ESSAYS': { color: 'bg-indigo-400' },
   'CN_PINYIN': { color: 'bg-kid-green' },
   'CN_SENTENCES': { color: 'bg-kid-purple' },
+  'CN_ESSAYS': { color: 'bg-pink-400' },
+  'CN_POEMS': { color: 'bg-teal-400' },
   'RACE_100M': { color: 'bg-orange-400' },
 };
