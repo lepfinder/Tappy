@@ -5,14 +5,14 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    # 适度宽松但安全的 CSP 策略
+    # CSP 策略 - 允许 Google Analytics 和百度统计
     Content-Security-Policy = """
       default-src 'self';
-      script-src 'self';
+      script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://hm.baidu.com;
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       font-src 'self' https://fonts.gstatic.com;
-      img-src 'self' data: blob:;
-      connect-src 'self';
+      img-src 'self' data: blob: https://www.google-analytics.com https://hm.baidu.com;
+      connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://hm.baidu.com;
     """
     # 其他安全头
     X-Frame-Options = "DENY"
