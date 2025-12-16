@@ -32,6 +32,7 @@
     --animate-fade-in: fadeIn 0.5s ease-out forwards;
     --animate-float: float 3s ease-in-out infinite;
     --animate-twinkle: twinkle 2s ease-in-out infinite;
+    --animate-blink: blink 1s step-end infinite;
 }
 
 /* Custom keyframes */
@@ -116,6 +117,18 @@
     50% {
         opacity: 1;
         transform: scale(1.2);
+    }
+}
+
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
     }
 }
 

@@ -3,6 +3,13 @@
 
 const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
 let audioCtx: AudioContext | null = null;
+let soundEnabled = true;
+
+export const setSoundEnabled = (enabled: boolean) => {
+    soundEnabled = enabled;
+};
+
+export const isSoundEnabled = () => soundEnabled;
 
 const initAudio = () => {
     if (!audioCtx) {
@@ -15,6 +22,8 @@ const initAudio = () => {
 };
 
 export const playSound = (type: 'click' | 'success' | 'error' | 'win') => {
+    if (!soundEnabled) return;
+
     try {
         const ctx = initAudio();
         const oscillator = ctx.createOscillator();
@@ -48,19 +57,19 @@ export const playSound = (type: 'click' | 'success' | 'error' | 'win') => {
             oscillator.start();
             oscillator.stop(ctx.currentTime + 0.2);
         } else if (type === 'win') {
-             // Simple arpeggio
-             const now = ctx.currentTime;
-             [400, 500, 600, 800].forEach((freq, i) => {
-                 const osc = ctx.createOscillator();
-                 const gn = ctx.createGain();
-                 osc.connect(gn);
-                 gn.connect(ctx.destination);
-                 osc.frequency.value = freq;
-                 gn.gain.setValueAtTime(0.1, now + i * 0.1);
-                 gn.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.3);
-                 osc.start(now + i * 0.1);
-                 osc.stop(now + i * 0.1 + 0.3);
-             });
+            // Simple arpeggio
+            const now = ctx.currentTime;
+            [400, 500, 600, 800].forEach((freq, i) => {
+                const osc = ctx.createOscillator();
+                const gn = ctx.createGain();
+                osc.connect(gn);
+                gn.connect(ctx.destination);
+                osc.frequency.value = freq;
+                gn.gain.setValueAtTime(0.1, now + i * 0.1);
+                gn.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.3);
+                osc.start(now + i * 0.1);
+                osc.stop(now + i * 0.1 + 0.3);
+            });
         }
     } catch (e) {
         console.error("Audio error", e);

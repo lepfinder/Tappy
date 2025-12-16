@@ -2,28 +2,30 @@
 import { create } from 'zustand';
 import { ChallengeItem, GameMode, Level, ViewState, Language, Participant } from '../types';
 import { MODE_DATA_MAP } from '../constants';
-import { playSound } from '../utils/sound';
+import { playSound, setSoundEnabled } from '../utils/sound';
 
 interface GameStore {
   // Global Settings
   language: Language;
   setLanguage: (lang: Language) => void;
+  soundEnabled: boolean;
+  setSoundEnabled: (enabled: boolean) => void;
 
   // Navigation
   view: ViewState;
   selectedMode: GameMode | null;
   selectedGrade: number;
   availableLevels: Level[];
-  
+
   // Game Session
   currentLevel: Level | null;
   currentChallengeIndex: number;
-  
+
   // Input State
   typedHistory: string;
   currentSyllableIndex: number;
   lastInputError: boolean;
-  
+
   // Stats
   score: number;
   errors: number;
@@ -47,10 +49,10 @@ interface GameStore {
   restartLevel: () => void;
   nextLevel: () => void;
   exitGame: () => void; // Back to level select
-  
+
   handleInput: (key: string) => void;
   nextChallenge: () => void;
-  
+
   // Race Actions
   startRace: () => void;
   tickRace: (dt: number) => void;
@@ -63,8 +65,13 @@ const DEFAULT_BOTS: Participant[] = [
 ];
 
 export const useGameStore = create<GameStore>((set, get) => ({
-  language: 'en',
+  language: 'cn',
   setLanguage: (lang) => set({ language: lang }),
+  soundEnabled: true,
+  setSoundEnabled: (enabled) => {
+    setSoundEnabled(enabled);
+    set({ soundEnabled: enabled });
+  },
 
   view: 'HOME',
   selectedMode: null,
@@ -84,15 +91,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
   totalKeystrokes: 0,
   correctKeystrokes: 0,
   correctHanzi: 0,
-  
+
   raceStatus: 'idle',
   participants: [],
 
   goHome: () => {
-    set({ 
-      view: 'HOME', 
-      selectedMode: null, 
-      availableLevels: [], 
+    set({
+      view: 'HOME',
+      selectedMode: null,
+      availableLevels: [],
       isPlaying: false,
       raceStatus: 'idle'
     });
@@ -100,7 +107,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   selectMode: (mode) => {
     const levels = MODE_DATA_MAP[mode];
-    
+
     // Default filter for poems and essays: Grade 1
     let filteredLevels = levels;
     if (mode === 'CN_POEMS' || mode === 'CN_ESSAYS') {
@@ -134,17 +141,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!level) return;
 
     playSound('click');
-    
+
     // Prepare Race State if mode is Race
     let raceStatePartial = {};
     if (selectedMode === 'RACE_100M') {
-       raceStatePartial = {
-         raceStatus: 'countdown',
-         participants: [
-           { id: 'player', name: 'You', type: 'player', progress: 0, speed: 0 },
-           ...DEFAULT_BOTS.map(b => ({...b, progress: 0}))
-         ]
-       };
+      raceStatePartial = {
+        raceStatus: 'countdown',
+        participants: [
+          { id: 'player', name: 'You', type: 'player', progress: 0, speed: 0 },
+          ...DEFAULT_BOTS.map(b => ({ ...b, progress: 0 }))
+        ]
+      };
     }
 
     set({
@@ -168,7 +175,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   startRace: () => {
-     set({ raceStatus: 'racing', startTime: Date.now() });
+    set({ raceStatus: 'racing', startTime: Date.now() });
   },
 
   tickRace: (dt: number) => {
@@ -182,8 +189,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if (p.type === 'player' || p.progress >= 100) return p;
 
       // Bot logic: move forward based on speed + random jitter
-      const jitter = Math.random() * 2; 
-      const move = (p.speed + jitter) * dt; 
+      const jitter = Math.random() * 2;
+      const move = (p.speed + jitter) * dt;
       const newProgress = Math.min(100, p.progress + move);
 
       if (newProgress >= 100) anyoneFinished = true;
@@ -200,16 +207,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
   restartLevel: () => {
     const { currentLevel, selectedMode } = get();
     if (!currentLevel) return;
-    
+
     let raceStatePartial = {};
     if (selectedMode === 'RACE_100M') {
-       raceStatePartial = {
-         raceStatus: 'countdown',
-         participants: [
-           { id: 'player', name: 'You', type: 'player', progress: 0, speed: 0 },
-           ...DEFAULT_BOTS.map(b => ({...b, progress: 0}))
-         ]
-       };
+      raceStatePartial = {
+        raceStatus: 'countdown',
+        participants: [
+          { id: 'player', name: 'You', type: 'player', progress: 0, speed: 0 },
+          ...DEFAULT_BOTS.map(b => ({ ...b, progress: 0 }))
+        ]
+      };
     }
 
     set({
@@ -252,12 +259,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (isLast) {
       playSound('win');
       if (selectedMode === 'RACE_100M') {
-         set({ raceStatus: 'finished', view: 'RESULT', isPlaying: false });
-         // Force player progress to 100 in case of rounding
-         const { participants } = get();
-         set({ participants: participants.map(p => p.type === 'player' ? { ...p, progress: 100 } : p) });
+        set({ raceStatus: 'finished', view: 'RESULT', isPlaying: false });
+        // Force player progress to 100 in case of rounding
+        const { participants } = get();
+        set({ participants: participants.map(p => p.type === 'player' ? { ...p, progress: 100 } : p) });
       } else {
-         set({ view: 'RESULT', isPlaying: false });
+        set({ view: 'RESULT', isPlaying: false });
       }
     } else {
       playSound('success');
@@ -267,17 +274,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
         currentSyllableIndex: 0,
         lastInputError: false
       });
-      
+
       // For Race Mode, calculate progress purely on index advancement
       if (selectedMode === 'RACE_100M') {
         const { participants } = get();
         const total = currentLevel.challenges.length;
         const progress = ((currentChallengeIndex + 1) / total) * 100;
-        
+
         set({
-           participants: participants.map(p => 
-             p.type === 'player' ? { ...p, progress: progress } : p
-           )
+          participants: participants.map(p =>
+            p.type === 'player' ? { ...p, progress: progress } : p
+          )
         });
       }
     }
@@ -285,24 +292,24 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   handleInput: (key: string) => {
     const { isPlaying, currentLevel, currentChallengeIndex, selectedMode, typedHistory, currentSyllableIndex, nextChallenge, startTime, raceStatus } = get();
-    
+
     // In race mode, ignore input if not in 'racing' state
     if (selectedMode === 'RACE_100M' && raceStatus !== 'racing') return;
     if (!isPlaying || !currentLevel) return;
 
     const currentItem = currentLevel.challenges[currentChallengeIndex];
     const normalizedKey = key.toLowerCase();
-    
+
     const newStartTime = startTime || Date.now();
 
     const handleSuccess = () => {
       playSound('click');
       const newHistory = typedHistory + normalizedKey;
       const newCombo = get().combo + 1;
-      
-      let stateUpdate: any = { 
-        typedHistory: newHistory, 
-        lastInputError: false, 
+
+      let stateUpdate: any = {
+        typedHistory: newHistory,
+        lastInputError: false,
         score: get().score + 10,
         combo: newCombo,
         maxCombo: Math.max(newCombo, get().maxCombo),
@@ -310,17 +317,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
         correctKeystrokes: get().correctKeystrokes + 1,
         startTime: newStartTime
       };
-      
+
       set(stateUpdate);
       return newHistory;
     };
 
     const handleError = () => {
       playSound('error');
-      set({ 
-        errors: get().errors + 1, 
+      set({
+        errors: get().errors + 1,
         lastInputError: true,
-        combo: 0, 
+        combo: 0,
         totalKeystrokes: get().totalKeystrokes + 1,
         startTime: newStartTime
       });
@@ -342,7 +349,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       } else {
         handleError();
       }
-    } 
+    }
     // -- LOGIC: CHINESE MODES --
     else {
       const syllables = currentItem.pinyin || [];
@@ -356,11 +363,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
           set({ correctHanzi: get().correctHanzi + 1 });
 
           if (currentSyllableIndex + 1 >= syllables.length) {
-             setTimeout(() => nextChallenge(), 200);
+            setTimeout(() => nextChallenge(), 200);
           } else {
-            set({ 
+            set({
               currentSyllableIndex: currentSyllableIndex + 1,
-              typedHistory: '' 
+              typedHistory: ''
             });
           }
         }

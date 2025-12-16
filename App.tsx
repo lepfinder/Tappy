@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { VirtualKeyboard } from './components/VirtualKeyboard';
 import { TypingArea } from './components/TypingArea';
 import { RaceTrack } from './components/RaceTrack';
@@ -16,11 +16,58 @@ const App: React.FC = () => {
   const { view, language, setLanguage, selectedMode } = useGameStore();
   const t = TRANSLATIONS[language];
 
+  // Typewriter effect state
+  const [displayedText, setDisplayedText] = useState('');
+  const [isTypingComplete, setIsTypingComplete] = useState(false);
+
   const toggleLanguage = () => {
     setLanguage(language === 'en' ? 'cn' : 'en');
   };
 
   const isRaceMode = selectedMode === 'RACE_100M';
+
+  // Typewriter effect with loop
+  useEffect(() => {
+    const slogan = t.slogan;
+    let currentIndex = 0;
+    let isDeleting = false;
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const tick = () => {
+      if (!isDeleting) {
+        // Typing phase
+        if (currentIndex < slogan.length) {
+          setDisplayedText(slogan.slice(0, currentIndex + 1));
+          currentIndex++;
+          setIsTypingComplete(false);
+          timeoutId = setTimeout(tick, 100);
+        } else {
+          // Finished typing, pause then start deleting
+          setIsTypingComplete(true);
+          timeoutId = setTimeout(() => {
+            isDeleting = true;
+            tick();
+          }, 2000); // Pause 2 seconds at full text
+        }
+      } else {
+        // Deleting phase
+        if (currentIndex > 0) {
+          currentIndex--;
+          setDisplayedText(slogan.slice(0, currentIndex));
+          setIsTypingComplete(false);
+          timeoutId = setTimeout(tick, 50); // Faster deletion
+        } else {
+          // Finished deleting, pause then restart
+          isDeleting = false;
+          timeoutId = setTimeout(tick, 500); // Pause before retyping
+        }
+      }
+    };
+
+    tick();
+
+    return () => clearTimeout(timeoutId);
+  }, [language, t.slogan]);
 
   return (
     <div className="min-h-screen flex flex-col items-center py-6 px-4 font-sans text-gray-800 relative overflow-x-hidden transition-colors duration-500">
@@ -36,7 +83,7 @@ const App: React.FC = () => {
       </button>
 
       {/* Header with Bear Logo */}
-      <header className="mb-6 text-center transition-all z-10 mt-4 md:mt-0 flex items-center gap-3">
+      <header className="mb-2 text-center transition-all z-10 mt-4 md:mt-0 flex items-center gap-3">
         <img
           src={bearLogo}
           alt="KidType Fun Logo"
@@ -47,14 +94,21 @@ const App: React.FC = () => {
             {t.appTitle}
             <span className="text-yellow-400 text-2xl animate-twinkle">☆</span>
           </h1>
-          {view === 'HOME' && (
-            <p className="text-gray-400 font-medium text-sm mt-1">{t.subtitle}</p>
-          )}
         </div>
       </header>
 
+      {/* Slogan with Typewriter Effect */}
+      {view === 'HOME' && (
+        <p className="text-gray-500 font-medium text-base md:text-lg mb-4 z-10 h-7">
+          <span>{displayedText}</span>
+          <span
+            className={`inline-block w-0.5 h-5 bg-kid-blue ml-0.5 align-middle ${isTypingComplete ? 'animate-blink' : ''}`}
+          />
+        </p>
+      )}
+
       {/* Main Content Router */}
-      <main className="w-full max-w-7xl flex flex-col items-center gap-6 flex-grow relative z-10 pb-20">
+      <main className={`w-full max-w-7xl flex flex-col items-center gap-6 flex-grow relative z-10 pb-20 ${view === 'HOME' ? 'justify-center' : ''}`}>
 
         {view === 'HOME' && <HomeScreen />}
 

@@ -5,7 +5,7 @@ export const TRANSLATIONS = {
   en: {
     appTitle: "Tappy",
     subtitle: "Learn to type",
-    selectMode: "Select a Game Mode",
+    slogan: "Type Happy, Grow Fast.",
     chooseLevel: "Choose a level",
     level: "Level",
     levelLabel: "LEVEL",
@@ -47,7 +47,7 @@ export const TRANSLATIONS = {
   cn: {
     appTitle: "Tappy",
     subtitle: "打字启蒙",
-    selectMode: "选择游戏模式",
+    slogan: "小手哒哒，打字顶呱呱！",
     chooseLevel: "选择关卡",
     level: "关卡",
     levelLabel: "第",
