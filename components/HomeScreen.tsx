@@ -52,7 +52,7 @@ const DECORATIONS = [
 ];
 
 export const HomeScreen: React.FC = () => {
-  const { selectMode, language } = useGameStore();
+  const { selectMode, language, setView } = useGameStore();
   const t = TRANSLATIONS[language];
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -130,12 +130,25 @@ export const HomeScreen: React.FC = () => {
       </div>
 
       {/* Bottom Navigation Bar - matching design */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-sm rounded-full shadow-lg px-6 py-3 flex items-center gap-6 z-20">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-sm rounded-full shadow-lg px-6 py-3 flex items-center gap-4 z-20">
+        {/* Home Button (active) */}
         <button className="w-10 h-10 rounded-full bg-blue-400 text-white flex items-center justify-center shadow-md hover:bg-blue-500 transition-colors">
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
             <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
           </svg>
         </button>
+
+        {/* Profile Button */}
+        <button
+          onClick={() => setView('PROFILE')}
+          className="w-10 h-10 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center hover:bg-purple-100 hover:text-kid-purple transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+        </button>
+
+        {/* Settings Button */}
         <button
           onClick={() => setIsSettingsOpen(true)}
           className="w-10 h-10 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center hover:bg-gray-200 transition-colors"
@@ -145,6 +158,8 @@ export const HomeScreen: React.FC = () => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         </button>
+
+        {/* About Button */}
         <button
           onClick={() => setIsAboutOpen(true)}
           className="w-10 h-10 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center hover:bg-gray-200 transition-colors"

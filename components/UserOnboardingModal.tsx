@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUserStore } from '../store/useUserStore';
 import { useGameStore } from '../store/useGameStore';
-import { AvatarStyle } from '../db';
-import { Avatar, AVATAR_STYLES, getAvatarUrl } from './Avatar';
+import { AVATAR_OPTIONS } from '../db';
 import { X } from 'lucide-react';
 
 interface UserOnboardingModalProps {
@@ -19,7 +18,7 @@ export const UserOnboardingModal: React.FC<UserOnboardingModalProps> = ({
 }) => {
     const { createUser } = useUserStore();
     const { language } = useGameStore();
-    const [selectedStyle, setSelectedStyle] = useState<AvatarStyle>('pixel-art');
+    const [selectedAvatar, setSelectedAvatar] = useState(AVATAR_OPTIONS[0]);
     const [name, setName] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -30,8 +29,7 @@ export const UserOnboardingModal: React.FC<UserOnboardingModalProps> = ({
         addSubtitle: '为新玩家创建档案',
         nameLabel: '昵称',
         namePlaceholder: '输入你的名字...',
-        styleLabel: '选择头像风格',
-        previewLabel: '预览',
+        avatarLabel: '选择头像',
         submitFirst: '开始练习 🚀',
         submitAdd: '创建用户',
         nameError: '请输入昵称',
@@ -42,8 +40,7 @@ export const UserOnboardingModal: React.FC<UserOnboardingModalProps> = ({
         addSubtitle: 'Create a profile for a new player',
         nameLabel: 'Nickname',
         namePlaceholder: 'Enter your name...',
-        styleLabel: 'Choose Avatar Style',
-        previewLabel: 'Preview',
+        avatarLabel: 'Choose Avatar',
         submitFirst: 'Start Typing 🚀',
         submitAdd: 'Create User',
         nameError: 'Please enter a nickname',
@@ -53,17 +50,14 @@ export const UserOnboardingModal: React.FC<UserOnboardingModalProps> = ({
     const subtitle = isFirstTime ? t.welcomeSubtitle : t.addSubtitle;
     const submitText = isFirstTime ? t.submitFirst : t.submitAdd;
 
-    // Preview name for avatar (use placeholder if empty)
-    const previewName = name.trim() || 'Tappy';
-
     const handleSubmit = async () => {
         if (!name.trim()) return;
 
         setIsSubmitting(true);
         try {
-            await createUser(name, selectedStyle);
+            await createUser(name, selectedAvatar);
             setName('');
-            setSelectedStyle('pixel-art');
+            setSelectedAvatar(AVATAR_OPTIONS[0]);
             if (onClose) onClose();
         } catch (error) {
             console.error('Failed to create user:', error);
@@ -107,27 +101,46 @@ export const UserOnboardingModal: React.FC<UserOnboardingModalProps> = ({
                                 </button>
                             )}
 
-                            {/* Avatar Preview */}
                             <motion.div
-                                className="flex justify-center mb-3"
-                                animate={{ rotate: [0, -5, 5, -5, 0] }}
+                                className="text-6xl mb-3"
+                                animate={{ rotate: [0, -10, 10, -10, 0] }}
                                 transition={{ duration: 0.5, delay: 0.3 }}
-                                key={`${previewName}-${selectedStyle}`}
                             >
-                                <Avatar
-                                    name={previewName}
-                                    style={selectedStyle}
-                                    size={80}
-                                    className="shadow-lg border-4 border-white"
-                                />
+                                {selectedAvatar}
                             </motion.div>
                             <h2 className="text-2xl font-cartoon text-gray-800">{title}</h2>
                             <p className="text-gray-500 mt-1">{subtitle}</p>
                         </div>
 
                         {/* Content */}
-                        <div className="p-6 space-y-5">
-                            {/* Name Input - First so avatar updates as you type */}
+                        <div className="p-6 space-y-6">
+                            {/* Avatar Selection */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-600 mb-3">
+                                    {t.avatarLabel}
+                                </label>
+                                <div className="grid grid-cols-6 gap-2">
+                                    {AVATAR_OPTIONS.map((avatar) => (
+                                        <button
+                                            key={avatar}
+                                            type="button"
+                                            onClick={() => setSelectedAvatar(avatar)}
+                                            className={`
+                                                w-12 h-12 rounded-xl text-2xl flex items-center justify-center
+                                                transition-all duration-200 hover:scale-110
+                                                ${selectedAvatar === avatar
+                                                    ? 'bg-purple-100 ring-2 ring-kid-purple scale-110 shadow-md'
+                                                    : 'bg-gray-50 hover:bg-gray-100'
+                                                }
+                                            `}
+                                        >
+                                            {avatar}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Name Input */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-600 mb-2">
                                     {t.nameLabel}
@@ -146,39 +159,6 @@ export const UserOnboardingModal: React.FC<UserOnboardingModalProps> = ({
                                     <span className="text-xs text-gray-400">
                                         {name.length}/8
                                     </span>
-                                </div>
-                            </div>
-
-                            {/* Avatar Style Selection */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-600 mb-3">
-                                    {t.styleLabel}
-                                </label>
-                                <div className="grid grid-cols-5 gap-2">
-                                    {AVATAR_STYLES.map((style) => (
-                                        <button
-                                            key={style.id}
-                                            type="button"
-                                            onClick={() => setSelectedStyle(style.id)}
-                                            className={`
-                                                flex flex-col items-center p-2 rounded-xl
-                                                transition-all duration-200 hover:scale-105
-                                                ${selectedStyle === style.id
-                                                    ? 'bg-purple-100 ring-2 ring-kid-purple shadow-md'
-                                                    : 'bg-gray-50 hover:bg-gray-100'
-                                                }
-                                            `}
-                                        >
-                                            <img
-                                                src={getAvatarUrl(previewName, style.id, 40)}
-                                                alt={style.name}
-                                                className="w-10 h-10 rounded-lg"
-                                            />
-                                            <span className="text-[10px] mt-1 text-gray-500 truncate w-full text-center">
-                                                {language === 'cn' ? style.nameCn : style.name}
-                                            </span>
-                                        </button>
-                                    ))}
                                 </div>
                             </div>
 

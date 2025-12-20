@@ -8,6 +8,7 @@ import { LevelSelectScreen } from './components/LevelSelectScreen';
 import { UserSwitcher } from './components/UserSwitcher';
 import { UserOnboardingModal } from './components/UserOnboardingModal';
 import { UserSwitchTransition } from './components/UserSwitchTransition';
+import { UserProfile } from './components/UserProfile';
 import { useGameStore } from './store/useGameStore';
 import { useUserStore } from './store/useUserStore';
 import { TRANSLATIONS } from './i18n';
@@ -17,7 +18,7 @@ import { Languages, ChevronDown } from 'lucide-react';
 import bearLogo from './images/bear_logo.png';
 
 const App: React.FC = () => {
-  const { view, language, setLanguage, selectedMode } = useGameStore();
+  const { view, language, setLanguage, selectedMode, setView } = useGameStore();
   const { initialize, isInitialized, isLoading, currentUser } = useUserStore();
   const t = TRANSLATIONS[language];
 
@@ -135,7 +136,11 @@ const App: React.FC = () => {
       </div>
 
       {/* Header with Bear Logo */}
-      <header className="mb-2 text-center transition-all z-10 mt-4 md:mt-0 flex items-center gap-3">
+      <header
+        className="mb-2 text-center transition-all z-10 mt-4 md:mt-0 flex items-center gap-3 cursor-pointer hover:opacity-80"
+        onClick={() => setView('HOME')}
+        title={language === 'cn' ? '返回首页' : 'Back to Home'}
+      >
         <img
           src={bearLogo}
           alt="KidType Fun Logo"
@@ -165,6 +170,8 @@ const App: React.FC = () => {
         {view === 'HOME' && <HomeScreen />}
 
         {view === 'LEVELS' && <LevelSelectScreen />}
+
+        {view === 'PROFILE' && <UserProfile onBack={() => setView('HOME')} />}
 
         {(view === 'GAME' || view === 'RESULT') && (
           <div className="w-full flex flex-col items-center animate-slide-up">

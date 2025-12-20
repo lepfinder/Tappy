@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Plus, Check } from 'lucide-react';
 import { useUserStore } from '../store/useUserStore';
 import { useGameStore } from '../store/useGameStore';
-import { Avatar } from './Avatar';
 
 interface UserSwitcherProps {
     onAddUser: () => void;
@@ -58,16 +57,12 @@ export const UserSwitcher: React.FC<UserSwitcherProps> = ({ onAddUser }) => {
             {/* Trigger Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 bg-white/90 backdrop-blur-sm py-1.5 px-3 rounded-full shadow-md hover:shadow-lg transition-all border border-gray-100 hover:border-kid-purple"
+                className="flex items-center gap-2 bg-white/90 backdrop-blur-sm py-2 px-4 rounded-full shadow-md hover:shadow-lg transition-all border border-gray-100 hover:border-kid-purple"
             >
                 {currentUser ? (
                     <>
-                        <Avatar
-                            name={currentUser.name}
-                            style={currentUser.avatarStyle}
-                            size={28}
-                        />
-                        <span className="font-medium text-gray-700 max-w-20 truncate text-sm">
+                        <span className="text-xl">{currentUser.avatar}</span>
+                        <span className="font-medium text-gray-700 max-w-20 truncate">
                             {currentUser.name}
                         </span>
                     </>
@@ -75,14 +70,14 @@ export const UserSwitcher: React.FC<UserSwitcherProps> = ({ onAddUser }) => {
                     <span className="text-gray-400">{t.noUser}</span>
                 )}
                 <ChevronDown
-                    size={14}
+                    size={16}
                     className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
                 />
             </button>
 
             {/* Dropdown Menu */}
             {isOpen && (
-                <div className="absolute top-full right-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50 animate-fade-in">
+                <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50 animate-fade-in">
                     {/* Other Users */}
                     {otherUsers.length > 0 && (
                         <div className="py-2 border-b border-gray-100">
@@ -92,11 +87,7 @@ export const UserSwitcher: React.FC<UserSwitcherProps> = ({ onAddUser }) => {
                                     onClick={() => handleSwitchUser(user.id!)}
                                     className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-purple-50 transition-colors text-left"
                                 >
-                                    <Avatar
-                                        name={user.name}
-                                        style={user.avatarStyle}
-                                        size={32}
-                                    />
+                                    <span className="text-xl">{user.avatar}</span>
                                     <span className="font-medium text-gray-700 flex-1 truncate">
                                         {user.name}
                                     </span>
@@ -109,11 +100,7 @@ export const UserSwitcher: React.FC<UserSwitcherProps> = ({ onAddUser }) => {
                     {currentUser && otherUsers.length > 0 && (
                         <div className="py-2 border-b border-gray-100">
                             <div className="flex items-center gap-3 px-4 py-2 bg-purple-50/50">
-                                <Avatar
-                                    name={currentUser.name}
-                                    style={currentUser.avatarStyle}
-                                    size={32}
-                                />
+                                <span className="text-xl">{currentUser.avatar}</span>
                                 <span className="font-medium text-gray-700 flex-1 truncate">
                                     {currentUser.name}
                                 </span>

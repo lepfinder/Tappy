@@ -47,6 +47,7 @@ interface GameStore {
 
   // Actions
   goHome: () => void;
+  setView: (view: ViewState) => void;
   selectMode: (mode: GameMode) => void;
   setGrade: (grade: number) => void;
   selectLevel: (levelId: string) => void;
@@ -115,6 +116,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       raceStatus: 'idle'
     });
   },
+
+  setView: (view) => set({ view }),
 
   selectMode: (mode) => {
     const levels = MODE_DATA_MAP[mode];

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { db, User, PracticeRecord, AvatarStyle } from '../db';
+import { db, User, PracticeRecord, AVATAR_OPTIONS } from '../db';
 
 const LAST_USER_KEY = 'tappy_lastActiveUserId';
 
@@ -18,7 +18,8 @@ interface UserStore {
     initialize: () => Promise<void>;
     refreshUsers: () => Promise<void>;
     switchUser: (userId: number) => Promise<void>;
-    createUser: (name: string, avatarStyle?: AvatarStyle) => Promise<User>;
+    createUser: (name: string, avatar?: string) => Promise<User>;
+    updateUser: (userId: number, updates: { name?: string; avatar?: string }) => Promise<void>;
     deleteUser: (userId: number) => Promise<void>;
     clearSwitching: () => void;
 
@@ -102,10 +103,10 @@ export const useUserStore = create<UserStore>((set, get) => ({
         set({ isSwitching: false, switchingToUser: null });
     },
 
-    createUser: async (name: string, avatarStyle: AvatarStyle = 'pixel-art') => {
+    createUser: async (name: string, avatar: string = AVATAR_OPTIONS[0]) => {
         const newUser: User = {
             name: name.trim().slice(0, 8), // Max 8 characters
-            avatarStyle,
+            avatar: AVATAR_OPTIONS.includes(avatar) ? avatar : AVATAR_OPTIONS[0],
             createdAt: Date.now()
         };
 
@@ -124,6 +125,36 @@ export const useUserStore = create<UserStore>((set, get) => ({
         localStorage.setItem(LAST_USER_KEY, id.toString());
 
         return createdUser;
+    },
+
+    updateUser: async (userId: number, updates: { name?: string; avatar?: string }) => {
+        const { allUsers, currentUser } = get();
+
+        // Find user to update
+        const userIndex = allUsers.findIndex(u => u.id === userId);
+        if (userIndex === -1) return;
+
+        const user = allUsers[userIndex];
+        const updatedUser: User = {
+            ...user,
+            name: updates.name?.trim().slice(0, 8) || user.name,
+            avatar: updates.avatar && AVATAR_OPTIONS.includes(updates.avatar) ? updates.avatar : user.avatar
+        };
+
+        // Update in database
+        await db.users.update(userId, {
+            name: updatedUser.name,
+            avatar: updatedUser.avatar
+        });
+
+        // Update store
+        const newAllUsers = [...allUsers];
+        newAllUsers[userIndex] = updatedUser;
+
+        set({
+            allUsers: newAllUsers,
+            currentUser: currentUser?.id === userId ? updatedUser : currentUser
+        });
     },
 
     deleteUser: async (userId: number) => {

@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUserStore } from '../store/useUserStore';
 import { useGameStore } from '../store/useGameStore';
-import { Avatar } from './Avatar';
 
 export const UserSwitchTransition: React.FC = () => {
     const { isSwitching, switchingToUser, clearSwitching } = useUserStore();
@@ -36,7 +35,7 @@ export const UserSwitchTransition: React.FC = () => {
                 >
                     {/* Avatar Animation */}
                     <motion.div
-                        className="mb-6"
+                        className="text-8xl md:text-9xl mb-6"
                         initial={{ scale: 0, rotate: -180 }}
                         animate={{ scale: 1, rotate: 0 }}
                         transition={{
@@ -46,12 +45,7 @@ export const UserSwitchTransition: React.FC = () => {
                             delay: 0.2
                         }}
                     >
-                        <Avatar
-                            name={switchingToUser.name}
-                            style={switchingToUser.avatarStyle}
-                            size={120}
-                            className="border-4 border-white shadow-2xl"
-                        />
+                        {switchingToUser.avatar}
                     </motion.div>
 
                     {/* Welcome Message */}

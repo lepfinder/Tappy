@@ -1,13 +1,13 @@
 import Dexie, { type EntityTable } from 'dexie';
 
-// Avatar style type (matches Avatar.tsx)
-export type AvatarStyle = 'pixel-art' | 'pixel-art-neutral' | 'thumbs' | 'fun-emoji' | 'adventurer';
+// Predefined emoji avatar options
+export const AVATAR_OPTIONS = ['🐼', '🦊', '🦁', '🐰', '🚀', '🦄', '🐸', '🐱', '🐶', '🦋', '🌟', '🎮'];
 
 // User profile interface
 export interface User {
     id?: number;
     name: string;
-    avatarStyle: AvatarStyle; // DiceBear avatar style
+    avatar: string; // Emoji character, e.g., '🐼'
     createdAt: number;
 }
 
@@ -32,17 +32,10 @@ const db = new Dexie('TappyDB') as Dexie & {
     records: EntityTable<PracticeRecord, 'id'>;
 };
 
-// Define database schema - Version 2 with avatarStyle
-db.version(2).stores({
-    users: '++id, name, createdAt',
-    records: '++id, userId, levelId, timestamp'
-});
-
-// Migration from v1 to v2: convert old emoji avatar to default style
-db.version(1).stores({
+// Define database schema - Version 3 with emoji avatar
+db.version(3).stores({
     users: '++id, name, createdAt',
     records: '++id, userId, levelId, timestamp'
 });
 
 export { db };
-

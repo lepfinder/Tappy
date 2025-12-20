@@ -1,12 +1,53 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
-import { Star, ChevronLeft, Lock, Unlock, GraduationCap, ChevronDown } from 'lucide-react';
+import { useUserStore } from '../store/useUserStore';
+import { Star, ChevronLeft, Unlock, GraduationCap, ChevronDown, Check } from 'lucide-react';
 import { TRANSLATIONS } from '../i18n';
+import { db } from '../db';
+
+// Custom hook to get practice counts per level for current user
+function useLevelPracticeCounts(userId: number | undefined): Record<string, number> {
+  const [counts, setCounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (!userId) {
+      setCounts({});
+      return;
+    }
+
+    const fetchCounts = async () => {
+      try {
+        const records = await db.records
+          .where('userId')
+          .equals(userId)
+          .toArray();
+
+        // Count records per levelId
+        const levelCounts: Record<string, number> = {};
+        records.forEach(record => {
+          levelCounts[record.levelId] = (levelCounts[record.levelId] || 0) + 1;
+        });
+
+        setCounts(levelCounts);
+      } catch (error) {
+        console.error('Failed to fetch level practice counts:', error);
+      }
+    };
+
+    fetchCounts();
+  }, [userId]);
+
+  return counts;
+}
 
 export const LevelSelectScreen: React.FC = () => {
   const { availableLevels, selectLevel, goHome, selectedMode, language, selectedGrade, setGrade } = useGameStore();
+  const { currentUser } = useUserStore();
   const t = TRANSLATIONS[language];
+
+  // Get practice counts for current user
+  const practiceCounts = useLevelPracticeCounts(currentUser?.id);
 
   if (!selectedMode) return null;
   const modeText = t.modes[selectedMode];
@@ -17,7 +58,7 @@ export const LevelSelectScreen: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={goHome}
             className="p-3 bg-white rounded-full shadow-md hover:bg-gray-50 text-gray-500 transition-colors"
           >
@@ -32,26 +73,26 @@ export const LevelSelectScreen: React.FC = () => {
         {/* Grade Selector (For Poems & Essays) */}
         {isGradedMode && (
           <div className="relative group min-w-[180px]">
-             <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-kid-blue">
-                <ChevronDown size={20} />
-             </div>
-             <select
-               value={selectedGrade}
-               onChange={(e) => setGrade(Number(e.target.value))}
-               className="
+            <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-kid-blue">
+              <ChevronDown size={20} />
+            </div>
+            <select
+              value={selectedGrade}
+              onChange={(e) => setGrade(Number(e.target.value))}
+              className="
                  w-full appearance-none bg-white pl-5 pr-10 py-3 rounded-2xl shadow-sm border-2 border-transparent 
                  text-kid-blue font-bold text-lg cursor-pointer hover:border-kid-blue transition-all outline-none
                  focus:ring-2 focus:ring-kid-blue/20
                "
-             >
-               {[1, 2, 3, 4, 5, 6].map((g) => (
-                 <option key={g} value={g}>
-                   {language === 'cn' 
-                     ? `人教版${TRANSLATIONS.cn.grades[g as keyof typeof TRANSLATIONS.cn.grades]}` 
-                     : `PEP ${TRANSLATIONS.en.grades[g as keyof typeof TRANSLATIONS.en.grades]}`}
-                 </option>
-               ))}
-             </select>
+            >
+              {[1, 2, 3, 4, 5, 6].map((g) => (
+                <option key={g} value={g}>
+                  {language === 'cn'
+                    ? `人教版${TRANSLATIONS.cn.grades[g as keyof typeof TRANSLATIONS.cn.grades]}`
+                    : `PEP ${TRANSLATIONS.en.grades[g as keyof typeof TRANSLATIONS.en.grades]}`}
+                </option>
+              ))}
+            </select>
           </div>
         )}
       </div>
@@ -59,48 +100,66 @@ export const LevelSelectScreen: React.FC = () => {
       {/* Grid */}
       {availableLevels.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {availableLevels.map((level, index) => (
-            <button
-              key={level.id}
-              onClick={() => selectLevel(level.id)}
-              className="
-                relative bg-white p-6 rounded-3xl shadow-md hover:shadow-lg transition-all duration-200 
-                hover:scale-105 border-b-4 border-gray-200 hover:border-kid-blue text-left h-full flex flex-col
-              "
-            >
-              <div className="flex justify-between items-start mb-3">
-                <span className={`
-                  font-bold px-3 py-1 rounded-full text-xs
-                  ${isGradedMode ? 'bg-teal-100 text-teal-600' : 'bg-gray-100 text-gray-400'}
-                `}>
-                  {isGradedMode 
-                    ? (language === 'cn' ? `${selectedGrade}年级` : `Grade ${selectedGrade}`)
-                    : `${t.levelLabel} ${index + 1}`
+          {availableLevels.map((level, index) => {
+            const practiceCount = practiceCounts[level.id] || 0;
+            const hasPracticed = practiceCount > 0;
+
+            return (
+              <button
+                key={level.id}
+                onClick={() => selectLevel(level.id)}
+                className={`
+                  relative bg-white p-6 rounded-3xl shadow-md hover:shadow-lg transition-all duration-200 
+                  hover:scale-105 border-b-4 text-left h-full flex flex-col
+                  ${hasPracticed
+                    ? 'border-kid-green hover:border-kid-blue'
+                    : 'border-gray-200 hover:border-kid-blue'
                   }
-                </span>
-                <Unlock size={18} className="text-kid-green" />
-              </div>
-              
-              <h3 className="text-xl font-bold text-gray-800 mb-1 leading-snug">{level.title}</h3>
-              <p className="text-sm text-gray-500 mb-4 line-clamp-2 flex-grow">{level.description}</p>
-              
-              <div className="flex gap-1 mt-auto">
-                {[...Array(3)].map((_, i) => (
-                  <Star 
-                    key={i} 
-                    size={16} 
-                    className={i < level.difficulty ? "fill-kid-yellow text-kid-yellow" : "text-gray-200"} 
-                  />
-                ))}
-              </div>
-            </button>
-          ))}
+                `}
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <span className={`
+                    font-bold px-3 py-1 rounded-full text-xs
+                    ${isGradedMode ? 'bg-teal-100 text-teal-600' : 'bg-gray-100 text-gray-400'}
+                  `}>
+                    {isGradedMode
+                      ? (language === 'cn' ? `${selectedGrade}年级` : `Grade ${selectedGrade}`)
+                      : `${t.levelLabel} ${index + 1}`
+                    }
+                  </span>
+
+                  {/* Practice Status Badge */}
+                  {hasPracticed ? (
+                    <div className="flex items-center gap-1 bg-green-100 text-green-600 px-2 py-0.5 rounded-full text-xs font-bold">
+                      <Check size={12} />
+                      <span>{practiceCount}</span>
+                    </div>
+                  ) : (
+                    <Unlock size={18} className="text-gray-300" />
+                  )}
+                </div>
+
+                <h3 className="text-xl font-bold text-gray-800 mb-1 leading-snug">{level.title}</h3>
+                <p className="text-sm text-gray-500 mb-4 line-clamp-2 flex-grow">{level.description}</p>
+
+                <div className="flex gap-1 mt-auto">
+                  {[...Array(3)].map((_, i) => (
+                    <Star
+                      key={i}
+                      size={16}
+                      className={i < level.difficulty ? "fill-kid-yellow text-kid-yellow" : "text-gray-200"}
+                    />
+                  ))}
+                </div>
+              </button>
+            );
+          })}
         </div>
       ) : (
         // Empty State
         <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-200">
-           <GraduationCap size={48} className="text-gray-300 mb-4" />
-           <p className="text-gray-400 font-bold">{language === 'cn' ? '该年级暂无内容，敬请期待！' : 'Coming soon for this grade!'}</p>
+          <GraduationCap size={48} className="text-gray-300 mb-4" />
+          <p className="text-gray-400 font-bold">{language === 'cn' ? '该年级暂无内容，敬请期待！' : 'Coming soon for this grade!'}</p>
         </div>
       )}
     </div>
