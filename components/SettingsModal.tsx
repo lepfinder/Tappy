@@ -1,14 +1,29 @@
-import React from 'react';
-import { X, Volume2, VolumeX } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { X, Volume2, VolumeX, Download, Upload, CheckCircle, AlertCircle } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
+import { useUserStore } from '../store/useUserStore';
+import { db, User, PracticeRecord } from '../db';
 
 interface SettingsModalProps {
     isOpen: boolean;
     onClose: () => void;
 }
 
+// Export data structure
+interface ExportData {
+    version: number;
+    exportDate: string;
+    users: User[];
+    records: PracticeRecord[];
+}
+
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     const { language, soundEnabled, setSoundEnabled } = useGameStore();
+    const { refreshUsers, initialize } = useUserStore();
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [exportStatus, setExportStatus] = useState<'idle' | 'success' | 'error'>('idle');
+    const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
+    const [statusMessage, setStatusMessage] = useState('');
 
     if (!isOpen) return null;
 
@@ -17,11 +32,140 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         sound: '游戏音效',
         soundOn: '开启',
         soundOff: '关闭',
+        dataManagement: '数据管理',
+        exportData: '导出数据',
+        exportDesc: '将用户和练习记录导出为 JSON 文件',
+        importData: '导入数据',
+        importDesc: '从 JSON 文件导入用户和练习记录',
+        exportSuccess: '数据导出成功！',
+        importSuccess: '数据导入成功！已导入 {users} 个用户和 {records} 条记录',
+        importError: '导入失败：文件格式不正确',
+        selectFile: '选择文件',
     } : {
         title: 'Settings',
         sound: 'Sound Effects',
         soundOn: 'On',
         soundOff: 'Off',
+        dataManagement: 'Data Management',
+        exportData: 'Export Data',
+        exportDesc: 'Export users and records as JSON file',
+        importData: 'Import Data',
+        importDesc: 'Import users and records from JSON file',
+        exportSuccess: 'Data exported successfully!',
+        importSuccess: 'Data imported! {users} users and {records} records added',
+        importError: 'Import failed: Invalid file format',
+        selectFile: 'Select File',
+    };
+
+    // Export all data to JSON file
+    const handleExport = async () => {
+        try {
+            const users = await db.users.toArray();
+            const records = await db.records.toArray();
+
+            const exportData: ExportData = {
+                version: 1,
+                exportDate: new Date().toISOString(),
+                users,
+                records
+            };
+
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `tappy_backup_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            setExportStatus('success');
+            setStatusMessage(content.exportSuccess);
+            setTimeout(() => setExportStatus('idle'), 3000);
+        } catch (error) {
+            console.error('Export failed:', error);
+            setExportStatus('error');
+            setTimeout(() => setExportStatus('idle'), 3000);
+        }
+    };
+
+    // Import data from JSON file
+    const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        try {
+            const text = await file.text();
+            const data: ExportData = JSON.parse(text);
+
+            // Validate structure
+            if (!data.version || !Array.isArray(data.users) || !Array.isArray(data.records)) {
+                throw new Error('Invalid file format');
+            }
+
+            let usersImported = 0;
+            let recordsImported = 0;
+
+            // Import users (skip if name already exists)
+            for (const user of data.users) {
+                const existingUser = await db.users.where('name').equals(user.name).first();
+                if (!existingUser) {
+                    // Remove id to let Dexie auto-generate
+                    const { id, ...userData } = user;
+                    await db.users.add(userData as User);
+                    usersImported++;
+                }
+            }
+
+            // Import records (need to remap user IDs)
+            // Create a mapping of old user IDs to new user IDs
+            const userIdMap: Record<number, number> = {};
+            for (const oldUser of data.users) {
+                if (oldUser.id) {
+                    const newUser = await db.users.where('name').equals(oldUser.name).first();
+                    if (newUser?.id) {
+                        userIdMap[oldUser.id] = newUser.id;
+                    }
+                }
+            }
+
+            // Import records with remapped user IDs
+            for (const record of data.records) {
+                const newUserId = userIdMap[record.userId];
+                if (newUserId) {
+                    const { id, ...recordData } = record;
+                    await db.records.add({
+                        ...recordData,
+                        userId: newUserId
+                    } as PracticeRecord);
+                    recordsImported++;
+                }
+            }
+
+            // Refresh the store
+            await refreshUsers();
+            await initialize();
+
+            setImportStatus('success');
+            setStatusMessage(
+                content.importSuccess
+                    .replace('{users}', String(usersImported))
+                    .replace('{records}', String(recordsImported))
+            );
+            setTimeout(() => setImportStatus('idle'), 5000);
+        } catch (error) {
+            console.error('Import failed:', error);
+            setImportStatus('error');
+            setStatusMessage(content.importError);
+            setTimeout(() => setImportStatus('idle'), 3000);
+        }
+
+        // Reset file input
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
     };
 
     return (
@@ -30,7 +174,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             onClick={onClose}
         >
             <div
-                className="bg-white rounded-3xl shadow-2xl max-w-md w-full relative"
+                className="bg-white rounded-3xl shadow-2xl max-w-md w-full relative max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Close Button */}
@@ -53,7 +197,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 </div>
 
                 {/* Content */}
-                <div className="p-6 space-y-4">
+                <div className="p-6 space-y-6">
                     {/* Sound Setting */}
                     <div className="flex items-center justify-between bg-gray-50 rounded-xl p-4">
                         <div className="flex items-center gap-3">
@@ -82,10 +226,75 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                         </button>
                     </div>
 
-                    {/* Status Text */}
-                    <p className="text-center text-sm text-gray-400">
-                        {soundEnabled ? `🔊 ${content.soundOn}` : `🔇 ${content.soundOff}`}
-                    </p>
+                    {/* Divider */}
+                    <div className="border-t border-gray-100" />
+
+                    {/* Data Management Section */}
+                    <div>
+                        <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">
+                            {content.dataManagement}
+                        </h3>
+
+                        {/* Export Data */}
+                        <div className="bg-blue-50 rounded-xl p-4 mb-3">
+                            <div className="flex items-start justify-between">
+                                <div className="flex items-start gap-3">
+                                    <Download className="w-5 h-5 text-kid-blue mt-0.5" />
+                                    <div>
+                                        <span className="font-medium text-gray-700 block">{content.exportData}</span>
+                                        <span className="text-xs text-gray-500">{content.exportDesc}</span>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={handleExport}
+                                    className="px-4 py-2 bg-kid-blue text-white rounded-lg font-medium text-sm hover:bg-blue-600 transition-colors"
+                                >
+                                    {content.exportData}
+                                </button>
+                            </div>
+                            {exportStatus === 'success' && (
+                                <div className="mt-2 flex items-center gap-2 text-green-600 text-sm">
+                                    <CheckCircle size={16} />
+                                    <span>{statusMessage}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Import Data */}
+                        <div className="bg-purple-50 rounded-xl p-4">
+                            <div className="flex items-start justify-between">
+                                <div className="flex items-start gap-3">
+                                    <Upload className="w-5 h-5 text-kid-purple mt-0.5" />
+                                    <div>
+                                        <span className="font-medium text-gray-700 block">{content.importData}</span>
+                                        <span className="text-xs text-gray-500">{content.importDesc}</span>
+                                    </div>
+                                </div>
+                                <label className="px-4 py-2 bg-kid-purple text-white rounded-lg font-medium text-sm hover:bg-purple-600 transition-colors cursor-pointer">
+                                    {content.selectFile}
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept=".json"
+                                        onChange={handleImport}
+                                        className="hidden"
+                                    />
+                                </label>
+                            </div>
+                            {importStatus === 'success' && (
+                                <div className="mt-2 flex items-center gap-2 text-green-600 text-sm">
+                                    <CheckCircle size={16} />
+                                    <span>{statusMessage}</span>
+                                </div>
+                            )}
+                            {importStatus === 'error' && (
+                                <div className="mt-2 flex items-center gap-2 text-red-500 text-sm">
+                                    <AlertCircle size={16} />
+                                    <span>{statusMessage}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
