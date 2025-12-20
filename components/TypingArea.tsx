@@ -219,7 +219,7 @@ export const TypingArea: React.FC = () => {
           <AnimatedStatBox
             label={t.speed}
             value={displayStats.wpm}
-            unit={selectedMode?.startsWith('CN') ? 'CPM' : 'WPM'}
+            unit={selectedMode === 'EN_LETTERS' ? 'CPM' : (selectedMode?.startsWith('CN') ? 'CPM' : 'WPM')}
             icon={<Zap size={20} />}
             colorClass="bg-blue-50"
             delay={0.6}

@@ -3,6 +3,8 @@ import React, { useEffect } from 'react';
 import { KEYBOARD_ROWS, FINGER_MAP, FINGER_COLORS } from '../constants';
 import { useGameStore } from '../store/useGameStore';
 import { TRANSLATIONS } from '../i18n';
+import { HandGuide } from './HandGuide';
+import { getFingerForKey, isSpaceKey, FingerName } from '../utils/fingerMapping';
 
 export const VirtualKeyboard: React.FC = () => {
   const {
@@ -34,6 +36,19 @@ export const VirtualKeyboard: React.FC = () => {
     }
   }
 
+  // Get finger info for current expected key
+  const fingerInfo = expectedKey ? getFingerForKey(expectedKey) : null;
+  const isSpace = expectedKey ? isSpaceKey(expectedKey) : false;
+
+  // Determine which finger to highlight for each hand
+  const leftActiveFinger: FingerName | null = isSpace
+    ? 'thumb'
+    : (fingerInfo?.hand === 'left' ? fingerInfo.finger : null);
+
+  const rightActiveFinger: FingerName | null = isSpace
+    ? 'thumb'
+    : (fingerInfo?.hand === 'right' ? fingerInfo.finger : null);
+
   // Handle physical keyboard events
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -55,53 +70,72 @@ export const VirtualKeyboard: React.FC = () => {
   }, [isPlaying, handleInput]);
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-4 bg-gray-100 rounded-3xl shadow-inner select-none transition-opacity duration-500">
-      <div className="flex flex-col gap-2">
-        {KEYBOARD_ROWS.map((row, rowIndex) => (
-          <div key={rowIndex} className="flex justify-center gap-2">
-            {row.map((key) => {
-              const finger = FINGER_MAP[key];
-              const fingerColorClass = FINGER_COLORS[finger];
-              const isTarget = key === expectedKey;
-
-              return (
-                <div
-                  key={key}
-                  className={`
-                    relative flex items-center justify-center
-                    w-12 h-12 md:w-16 md:h-16 rounded-xl border-b-4 transition-all duration-100
-                    uppercase font-bold text-lg md:text-2xl shadow-sm
-                    ${isTarget
-                      ? `${fingerColorClass} -translate-y-1 border-b-[6px] brightness-110 ring-4 ring-yellow-300 ring-opacity-50 z-10 scale-110`
-                      : 'bg-white border-gray-300 text-gray-500'
-                    }
-                  `}
-                >
-                  {key}
-                  {/* Finger Dot Indicator */}
-                  {isTarget && (
-                    <div className="absolute -bottom-6 text-xs text-gray-400 font-sans whitespace-nowrap opacity-0 md:opacity-100 animate-bounce">
-                      {finger.replace('-', ' ')}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ))}
+    <div className="flex flex-row items-end justify-center gap-4 lg:gap-8 w-full max-w-6xl mx-auto">
+      {/* Left Hand Guide - Hidden on small screens */}
+      <div className="hidden lg:block">
+        <HandGuide
+          side="left"
+          activeFinger={leftActiveFinger}
+        />
       </div>
 
-      {/* Spacebar Row - Decorative and functional visual indicator for Space */}
-      <div className="flex justify-center mt-2">
-        <div className={`
-           w-64 h-12 rounded-xl border-b-4 flex items-center justify-center text-sm font-bold tracking-widest transition-all
-           ${expectedKey === ' '
-            ? 'bg-yellow-200 border-yellow-400 ring-4 ring-yellow-300 ring-opacity-50 -translate-y-1 scale-105'
-            : 'bg-white border-gray-300 text-gray-300'
-          }
-         `}>
-          {t.space}
+      {/* Virtual Keyboard */}
+      <div className="flex-shrink-0 w-full max-w-4xl p-4 bg-gray-100 rounded-3xl shadow-inner select-none transition-opacity duration-500">
+        <div className="flex flex-col gap-2">
+          {KEYBOARD_ROWS.map((row, rowIndex) => (
+            <div key={rowIndex} className="flex justify-center gap-2">
+              {row.map((key) => {
+                const finger = FINGER_MAP[key];
+                const fingerColorClass = FINGER_COLORS[finger];
+                const isTarget = key === expectedKey;
+
+                return (
+                  <div
+                    key={key}
+                    className={`
+                      relative flex items-center justify-center
+                      w-12 h-12 md:w-16 md:h-16 rounded-xl border-b-4 transition-all duration-100
+                      uppercase font-bold text-lg md:text-2xl shadow-sm
+                      ${isTarget
+                        ? `${fingerColorClass} -translate-y-1 border-b-[6px] brightness-110 ring-4 ring-yellow-300 ring-opacity-50 z-10 scale-110`
+                        : 'bg-white border-gray-300 text-gray-500'
+                      }
+                    `}
+                  >
+                    {key}
+                    {/* Finger Dot Indicator */}
+                    {isTarget && (
+                      <div className="absolute -bottom-6 text-xs text-gray-400 font-sans whitespace-nowrap opacity-0 md:opacity-100 animate-bounce">
+                        {finger.replace('-', ' ')}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
         </div>
+
+        {/* Spacebar Row - Decorative and functional visual indicator for Space */}
+        <div className="flex justify-center mt-2">
+          <div className={`
+             w-64 h-12 rounded-xl border-b-4 flex items-center justify-center text-sm font-bold tracking-widest transition-all
+             ${expectedKey === ' '
+              ? 'bg-yellow-200 border-yellow-400 ring-4 ring-yellow-300 ring-opacity-50 -translate-y-1 scale-105'
+              : 'bg-white border-gray-300 text-gray-300'
+            }
+           `}>
+            {t.space}
+          </div>
+        </div>
+      </div>
+
+      {/* Right Hand Guide - Hidden on small screens */}
+      <div className="hidden lg:block">
+        <HandGuide
+          side="right"
+          activeFinger={rightActiveFinger}
+        />
       </div>
     </div>
   );

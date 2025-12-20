@@ -580,6 +580,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-3">
+                                    {/* Time Spent */}
+                                    <span className="text-xs text-gray-400">
+                                        {record.timeSpent >= 60
+                                            ? `${Math.floor(record.timeSpent / 60)}m${record.timeSpent % 60}s`
+                                            : `${record.timeSpent}s`
+                                        }
+                                    </span>
                                     <span className="text-sm font-medium text-kid-purple">
                                         {record.wpm} WPM
                                     </span>

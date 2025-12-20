@@ -421,14 +421,23 @@ export const useGameStore = create<GameStore>((set, get) => ({
       ? Math.round((correctKeystrokes / totalKeystrokes) * 100)
       : 100;
 
-    // Calculate WPM (Words Per Minute)
-    // For English: 5 characters = 1 word
+    // Calculate WPM (Words Per Minute) or CPM (Characters Per Minute)
+    // For EN_LETTERS: Use CPM (each keystroke counts)
+    // For EN_WORDS/EN_ESSAYS/RACE: 5 characters = 1 word (standard WPM)
     // For Chinese: 1 character = 1 word
-    const isEnglishMode = selectedMode?.startsWith('EN') || selectedMode === 'RACE_100M';
     const minutesSpent = timeSpent / 60 || 1 / 60; // Avoid division by zero, minimum 1 second
-    const wpm = isEnglishMode
-      ? Math.round((correctKeystrokes / 5) / minutesSpent)
-      : Math.round(correctKeystrokes / minutesSpent);
+
+    let wpm: number;
+    if (selectedMode === 'EN_LETTERS') {
+      // CPM for letter practice - this makes more sense for single letter exercises
+      wpm = Math.round(correctKeystrokes / minutesSpent);
+    } else if (selectedMode?.startsWith('EN') || selectedMode === 'RACE_100M') {
+      // Standard WPM (5 chars = 1 word) for word/sentence practice
+      wpm = Math.round((correctKeystrokes / 5) / minutesSpent);
+    } else {
+      // Chinese: Each character/hanzi counts as one
+      wpm = Math.round(correctKeystrokes / minutesSpent);
+    }
 
     // Get top 3 mistake keys
     const sortedMistakes = Object.entries(mistakeKeys)
