@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../store/useGameStore';
+import { useUserStore } from '../store/useUserStore';
 import { TRANSLATIONS } from '../i18n';
 import { Star, RotateCcw, Menu, ArrowRight, Zap, Target, Flame, AlertCircle } from 'lucide-react';
 
@@ -86,11 +87,13 @@ export const TypingArea: React.FC = () => {
     practiceResult
   } = useGameStore();
 
+  const { saveRecord, currentUser } = useUserStore();
   const t = TRANSLATIONS[language];
 
   // Calculate stats when entering result view
   const [stats, setStats] = useState(practiceResult);
   const [showStars, setShowStars] = useState([false, false, false]);
+  const [recordSaved, setRecordSaved] = useState(false);
 
   useEffect(() => {
     if (view === 'RESULT' && !practiceResult) {
@@ -99,7 +102,28 @@ export const TypingArea: React.FC = () => {
     } else if (view === 'RESULT' && practiceResult) {
       setStats(practiceResult);
     }
+    // Reset recordSaved when leaving result view
+    if (view !== 'RESULT') {
+      setRecordSaved(false);
+    }
   }, [view, practiceResult, calculateStats]);
+
+  // Save record to database when stats are calculated
+  useEffect(() => {
+    if (view === 'RESULT' && stats && currentLevel && currentUser && !recordSaved) {
+      saveRecord({
+        levelId: currentLevel.id,
+        mode: selectedMode || 'UNKNOWN',
+        wpm: stats.wpm,
+        accuracy: stats.accuracy,
+        stars: stats.stars,
+        score: stats.score,
+        maxCombo: stats.maxCombo,
+        timeSpent: stats.timeSpent
+      });
+      setRecordSaved(true);
+    }
+  }, [view, stats, currentLevel, currentUser, selectedMode, saveRecord, recordSaved]);
 
   // Animate stars appearing one by one
   useEffect(() => {

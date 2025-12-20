@@ -5,7 +5,11 @@ import { RaceTrack } from './components/RaceTrack';
 import { GameControls } from './components/GameControls';
 import { HomeScreen } from './components/HomeScreen';
 import { LevelSelectScreen } from './components/LevelSelectScreen';
+import { UserSwitcher } from './components/UserSwitcher';
+import { UserOnboardingModal } from './components/UserOnboardingModal';
+import { UserSwitchTransition } from './components/UserSwitchTransition';
 import { useGameStore } from './store/useGameStore';
+import { useUserStore } from './store/useUserStore';
 import { TRANSLATIONS } from './i18n';
 import { Languages, ChevronDown } from 'lucide-react';
 
@@ -14,11 +18,20 @@ import bearLogo from './images/bear_logo.png';
 
 const App: React.FC = () => {
   const { view, language, setLanguage, selectedMode } = useGameStore();
+  const { initialize, isInitialized, isLoading, currentUser } = useUserStore();
   const t = TRANSLATIONS[language];
+
+  // User modal state
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
 
   // Typewriter effect state
   const [displayedText, setDisplayedText] = useState('');
   const [isTypingComplete, setIsTypingComplete] = useState(false);
+
+  // Initialize user store on app load
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
 
   const toggleLanguage = () => {
     setLanguage(language === 'en' ? 'cn' : 'en');
@@ -69,18 +82,57 @@ const App: React.FC = () => {
     return () => clearTimeout(timeoutId);
   }, [language, t.slogan]);
 
+  // Show loading screen while initializing
+  if (!isInitialized || isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-pink-50 via-white to-blue-50">
+        <img
+          src={bearLogo}
+          alt="Tappy Logo"
+          className="w-20 h-20 object-contain animate-bounce"
+        />
+        <p className="mt-4 text-gray-400 font-medium">Loading...</p>
+      </div>
+    );
+  }
+
+  // Show first-time user must be created
+  const showFirstTimeModal = isInitialized && !currentUser;
+
   return (
     <div className="min-h-screen flex flex-col items-center py-6 px-4 font-sans text-gray-800 relative overflow-x-hidden transition-colors duration-500">
 
-      {/* Language Switcher - Updated design */}
-      <button
-        onClick={toggleLanguage}
-        className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm py-2 px-4 rounded-full shadow-md text-gray-600 hover:text-kid-blue flex items-center gap-2 border border-gray-100 hover:border-kid-blue transition-all z-20 font-medium text-sm"
-      >
-        <Languages size={18} />
-        <span>{language === 'en' ? 'English' : '中文'}</span>
-        <ChevronDown size={14} />
-      </button>
+      {/* First Time Onboarding Modal */}
+      <UserOnboardingModal
+        isOpen={showFirstTimeModal}
+        isFirstTime={true}
+      />
+
+      {/* Add User Modal */}
+      <UserOnboardingModal
+        isOpen={showAddUserModal}
+        onClose={() => setShowAddUserModal(false)}
+        isFirstTime={false}
+      />
+
+      {/* User Switch Transition Animation */}
+      <UserSwitchTransition />
+
+      {/* Top Navigation Bar */}
+      <div className="absolute top-4 right-4 flex items-center gap-3 z-20">
+        {/* User Switcher */}
+        <UserSwitcher onAddUser={() => setShowAddUserModal(true)} />
+
+        {/* Language Switcher */}
+        <button
+          onClick={toggleLanguage}
+          className="bg-white/90 backdrop-blur-sm py-2 px-4 rounded-full shadow-md text-gray-600 hover:text-kid-blue flex items-center gap-2 border border-gray-100 hover:border-kid-blue transition-all font-medium text-sm"
+        >
+          <Languages size={18} />
+          <span>{language === 'en' ? 'English' : '中文'}</span>
+          <ChevronDown size={14} />
+        </button>
+      </div>
 
       {/* Header with Bear Logo */}
       <header className="mb-2 text-center transition-all z-10 mt-4 md:mt-0 flex items-center gap-3">
