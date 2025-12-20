@@ -25,6 +25,16 @@ export const TRANSLATIONS = {
     rank: "Rank",
     you: "You",
     grade: "Grade",
+    // Stats translations
+    speed: "Speed",
+    maxCombo: "Max Combo",
+    needPractice: "Need Practice",
+    perfect: "Perfect!",
+    starMessages: {
+      3: "Amazing! Perfect!",
+      2: "Great job!",
+      1: "Keep practicing!"
+    },
     grades: {
       1: "Grade 1",
       2: "Grade 2",
@@ -67,6 +77,16 @@ export const TRANSLATIONS = {
     rank: "排名",
     you: "你",
     grade: "年级",
+    // Stats translations
+    speed: "速度",
+    maxCombo: "最大连击",
+    needPractice: "需练习",
+    perfect: "无懈可击！",
+    starMessages: {
+      3: "太神了！完美发挥！",
+      2: "做得不错！",
+      1: "继续加油！"
+    },
     grades: {
       1: "一年级",
       2: "二年级",

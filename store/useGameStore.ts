@@ -1,6 +1,6 @@
 
 import { create } from 'zustand';
-import { ChallengeItem, GameMode, Level, ViewState, Language, Participant } from '../types';
+import { ChallengeItem, GameMode, Level, ViewState, Language, Participant, PracticeResult } from '../types';
 import { MODE_DATA_MAP } from '../constants';
 import { playSound, setSoundEnabled } from '../utils/sound';
 
@@ -37,6 +37,10 @@ interface GameStore {
   correctKeystrokes: number;
   correctHanzi: number;
 
+  // Mistake Tracking for Stats
+  mistakeKeys: Record<string, number>; // key -> error count
+  practiceResult: PracticeResult | null;
+
   // Race State
   raceStatus: 'idle' | 'countdown' | 'racing' | 'finished';
   participants: Participant[];
@@ -56,6 +60,9 @@ interface GameStore {
   // Race Actions
   startRace: () => void;
   tickRace: (dt: number) => void;
+
+  // Stats
+  calculateStats: () => PracticeResult;
 }
 
 const DEFAULT_BOTS: Participant[] = [
@@ -91,6 +98,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
   totalKeystrokes: 0,
   correctKeystrokes: 0,
   correctHanzi: 0,
+
+  // Mistake Tracking
+  mistakeKeys: {},
+  practiceResult: null,
 
   raceStatus: 'idle',
   participants: [],
@@ -170,6 +181,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       totalKeystrokes: 0,
       correctKeystrokes: 0,
       correctHanzi: 0,
+      mistakeKeys: {},
+      practiceResult: null,
       ...raceStatePartial
     });
   },
@@ -233,6 +246,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       totalKeystrokes: 0,
       correctKeystrokes: 0,
       correctHanzi: 0,
+      mistakeKeys: {},
+      practiceResult: null,
       ...raceStatePartial
     });
   },
@@ -322,14 +337,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return newHistory;
     };
 
-    const handleError = () => {
+    const handleError = (expectedKey: string) => {
       playSound('error');
+      // Track mistake key
+      const mistakeKeys = { ...get().mistakeKeys };
+      const keyToTrack = expectedKey.toLowerCase();
+      mistakeKeys[keyToTrack] = (mistakeKeys[keyToTrack] || 0) + 1;
+
       set({
         errors: get().errors + 1,
         lastInputError: true,
         combo: 0,
         totalKeystrokes: get().totalKeystrokes + 1,
-        startTime: newStartTime
+        startTime: newStartTime,
+        mistakeKeys
       });
       setTimeout(() => set({ lastInputError: false }), 400);
     };
@@ -347,7 +368,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           setTimeout(() => nextChallenge(), delay);
         }
       } else {
-        handleError();
+        handleError(nextChar || normalizedKey);
       }
     }
     // -- LOGIC: CHINESE MODES --
@@ -372,8 +393,67 @@ export const useGameStore = create<GameStore>((set, get) => ({
           }
         }
       } else {
-        handleError();
+        handleError(expectedChar || normalizedKey);
       }
     }
+  },
+
+  calculateStats: () => {
+    const {
+      totalKeystrokes,
+      correctKeystrokes,
+      startTime,
+      maxCombo,
+      score,
+      mistakeKeys,
+      selectedMode
+    } = get();
+
+    // Calculate time spent
+    const endTime = Date.now();
+    const timeSpent = startTime ? Math.round((endTime - startTime) / 1000) : 0;
+
+    // Calculate accuracy (0-100)
+    const accuracy = totalKeystrokes > 0
+      ? Math.round((correctKeystrokes / totalKeystrokes) * 100)
+      : 100;
+
+    // Calculate WPM (Words Per Minute)
+    // For English: 5 characters = 1 word
+    // For Chinese: 1 character = 1 word
+    const isEnglishMode = selectedMode?.startsWith('EN') || selectedMode === 'RACE_100M';
+    const minutesSpent = timeSpent / 60 || 1 / 60; // Avoid division by zero, minimum 1 second
+    const wpm = isEnglishMode
+      ? Math.round((correctKeystrokes / 5) / minutesSpent)
+      : Math.round(correctKeystrokes / minutesSpent);
+
+    // Get top 3 mistake keys
+    const sortedMistakes = Object.entries(mistakeKeys)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+      .map(([key]) => key);
+
+    // Calculate stars based on accuracy and WPM
+    let stars: 1 | 2 | 3 = 1;
+    if (accuracy >= 90 && wpm >= 15) {
+      stars = 3;
+    } else if (accuracy >= 80) {
+      stars = 2;
+    }
+
+    const result: PracticeResult = {
+      wpm,
+      accuracy,
+      timeSpent,
+      maxCombo,
+      mistakeKeys: sortedMistakes,
+      stars,
+      score
+    };
+
+    // Store the result
+    set({ practiceResult: result });
+
+    return result;
   }
 }));

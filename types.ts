@@ -1,11 +1,11 @@
 
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
-export type GameMode = 
-  | 'EN_LETTERS' 
-  | 'EN_WORDS' 
+export type GameMode =
+  | 'EN_LETTERS'
+  | 'EN_WORDS'
   | 'EN_ESSAYS'
-  | 'CN_PINYIN' 
+  | 'CN_PINYIN'
   | 'CN_SENTENCES'
   | 'CN_ESSAYS'
   | 'CN_POEMS'
@@ -46,25 +46,25 @@ export interface GameState {
   view: ViewState;
   selectedMode: GameMode | null;
   selectedGrade: number; // New: For Poem/Essay filtering
-  
+
   // Data for the current flow
   availableLevels: Level[];
   currentLevel: Level | null;
-  
+
   // Gameplay State
   isPlaying: boolean;
   currentChallengeIndex: number;
-  
+
   // Specific item progress
   currentItem: ChallengeItem | null;
-  typedHistory: string;     
+  typedHistory: string;
   currentSyllableIndex: number;
-  
+
   // Stats
   score: number;
   errors: number;
   lastInputError: boolean;
-  
+
   // New Real-time Stats
   combo: number;
   maxCombo: number;
@@ -76,4 +76,15 @@ export interface GameState {
   // Race Specific
   raceStatus: 'idle' | 'countdown' | 'racing' | 'finished';
   participants: Participant[];
+}
+
+// 练习结束时的统计结果
+export interface PracticeResult {
+  wpm: number;           // 最终速度 (Words/Characters Per Minute)
+  accuracy: number;      // 最终准确率 (0-100)
+  timeSpent: number;     // 耗时 (秒)
+  maxCombo: number;      // 最大连击数
+  mistakeKeys: string[]; // 错误次数最多的键位，如 ['a', 'p']
+  stars: 1 | 2 | 3;      // 计算出的星星
+  score: number;         // 综合得分
 }
