@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, Zap, Trophy, Calendar, Target, ArrowLeft, Star, Edit3, X, Check, Users } from 'lucide-react';
+import { Clock, Zap, Trophy, Calendar, Target, ArrowLeft, Star, Edit3, X, Check, Users, Trash2, AlertTriangle } from 'lucide-react';
 import { db, PracticeRecord, AVATAR_OPTIONS } from '../db';
 import { useUserStore } from '../store/useUserStore';
 import { useGameStore } from '../store/useGameStore';
@@ -308,7 +308,7 @@ interface UserProfileProps {
 }
 
 export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
-    const { currentUser, updateUser } = useUserStore();
+    const { currentUser, updateUser, deleteUser, allUsers } = useUserStore();
     const { language } = useGameStore();
     const stats = useUserStats(currentUser?.id);
 
@@ -317,6 +317,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
     const [editName, setEditName] = useState('');
     const [editAvatar, setEditAvatar] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+
+    // Delete confirmation state
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Chart comparison state (default: on)
     const [showComparison, setShowComparison] = useState(true);
@@ -344,6 +348,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
         save: '保存',
         cancel: '取消',
         compareAll: '对比所有用户',
+        deleteUser: '删除用户',
+        deleteConfirmTitle: '确认删除',
+        deleteConfirmMessage: '确定要删除这个用户吗？所有练习记录将被清除，无法恢复。',
+        deleteConfirm: '确认删除',
+        cannotDelete: '无法删除唯一用户',
     } : {
         title: 'My Progress',
         subtitle: 'Look how far you\'ve come!',
@@ -364,6 +373,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
         save: 'Save',
         cancel: 'Cancel',
         compareAll: 'Compare All Users',
+        deleteUser: 'Delete User',
+        deleteConfirmTitle: 'Confirm Delete',
+        deleteConfirmMessage: 'Are you sure you want to delete this user? All practice records will be permanently deleted.',
+        deleteConfirm: 'Delete',
+        cannotDelete: 'Cannot delete only user',
     };
 
     if (!currentUser) return null;
@@ -402,6 +416,29 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
         setIsEditing(false);
         setEditName('');
         setEditAvatar('');
+    };
+
+    // Delete user handler
+    const handleDeleteUser = async () => {
+        if (!currentUser?.id) return;
+
+        // Prevent deleting the only user
+        if (allUsers.length <= 1) {
+            alert(t.cannotDelete);
+            setShowDeleteConfirm(false);
+            return;
+        }
+
+        setIsDeleting(true);
+        try {
+            await deleteUser(currentUser.id);
+            setShowDeleteConfirm(false);
+            onBack(); // Go back to home after deletion
+        } catch (error) {
+            console.error('Failed to delete user:', error);
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     if (stats.isLoading) {
@@ -522,6 +559,66 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
                 )}
             </AnimatePresence>
 
+            {/* Delete Confirmation Modal */}
+            <AnimatePresence>
+                {showDeleteConfirm && (
+                    <motion.div
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setShowDeleteConfirm(false)}
+                    >
+                        <motion.div
+                            className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-xl"
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Warning Icon */}
+                            <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+                                <AlertTriangle className="w-8 h-8 text-red-500" />
+                            </div>
+
+                            {/* Title */}
+                            <h3 className="text-xl font-bold text-center text-gray-800 mb-2">
+                                {t.deleteConfirmTitle}
+                            </h3>
+
+                            {/* User info */}
+                            <div className="flex items-center justify-center gap-2 mb-4">
+                                <span className="text-3xl">{currentUser.avatar}</span>
+                                <span className="font-medium text-gray-700">{currentUser.name}</span>
+                            </div>
+
+                            {/* Message */}
+                            <p className="text-gray-500 text-center text-sm mb-6">
+                                {t.deleteConfirmMessage}
+                            </p>
+
+                            {/* Buttons */}
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowDeleteConfirm(false)}
+                                    className="flex-1 py-3 rounded-xl font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                                >
+                                    {t.cancel}
+                                </button>
+                                <button
+                                    onClick={handleDeleteUser}
+                                    disabled={isDeleting}
+                                    className="flex-1 py-3 rounded-xl font-bold bg-red-500 text-white hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <Trash2 size={18} />
+                                    {isDeleting ? '...' : t.deleteConfirm}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Back Button */}
             <motion.button
                 onClick={onBack}
@@ -575,14 +672,28 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
                         </div>
                     </div>
 
-                    {/* Edit Button */}
-                    <button
-                        onClick={handleStartEdit}
-                        className="w-10 h-10 rounded-full bg-white/80 hover:bg-white flex items-center justify-center text-gray-500 hover:text-kid-purple transition-colors shadow-sm"
-                        title={t.edit}
-                    >
-                        <Edit3 size={18} />
-                    </button>
+                    {/* Action Buttons */}
+                    <div className="flex gap-2">
+                        {/* Edit Button */}
+                        <button
+                            onClick={handleStartEdit}
+                            className="w-10 h-10 rounded-full bg-white/80 hover:bg-white flex items-center justify-center text-gray-500 hover:text-kid-purple transition-colors shadow-sm"
+                            title={t.edit}
+                        >
+                            <Edit3 size={18} />
+                        </button>
+
+                        {/* Delete Button - only show if more than one user */}
+                        {allUsers.length > 1 && (
+                            <button
+                                onClick={() => setShowDeleteConfirm(true)}
+                                className="w-10 h-10 rounded-full bg-white/80 hover:bg-red-50 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors shadow-sm"
+                                title={t.deleteUser}
+                            >
+                                <Trash2 size={18} />
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {/* Subtitle */}
@@ -753,8 +864,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
                                 <div
                                     key={user.name}
                                     className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${user.name === currentUser?.name
-                                            ? 'bg-purple-100 font-medium'
-                                            : 'bg-gray-100'
+                                        ? 'bg-purple-100 font-medium'
+                                        : 'bg-gray-100'
                                         }`}
                                 >
                                     <div
