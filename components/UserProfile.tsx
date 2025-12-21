@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, Zap, Trophy, Calendar, Target, ArrowLeft, Star, Edit3, X, Check } from 'lucide-react';
+import { Clock, Zap, Trophy, Calendar, Target, ArrowLeft, Star, Edit3, X, Check, Users } from 'lucide-react';
 import { db, PracticeRecord, AVATAR_OPTIONS } from '../db';
 import { useUserStore } from '../store/useUserStore';
 import { useGameStore } from '../store/useGameStore';
@@ -167,6 +167,122 @@ function useUserStats(userId: number | undefined): UserStats {
     return stats;
 }
 
+// Colors for different users in chart comparison
+const USER_COLORS = [
+    '#8B5CF6', // purple (current user)
+    '#10B981', // green
+    '#F59E0B', // amber
+    '#EF4444', // red
+    '#3B82F6', // blue
+    '#EC4899', // pink
+    '#14B8A6', // teal
+    '#F97316', // orange
+];
+
+// Interface for multi-user chart data
+interface MultiUserChartData {
+    date: string;
+    timestamp: number;
+    [userName: string]: string | number; // dynamic user names as keys
+}
+
+interface UserChartInfo {
+    name: string;
+    avatar: string;
+    color: string;
+}
+
+// Custom hook for fetching all users' chart data for comparison
+function useAllUsersChartData(currentUserId: number | undefined) {
+    const { allUsers } = useUserStore();
+    const [chartData, setChartData] = useState<MultiUserChartData[]>([]);
+    const [userInfos, setUserInfos] = useState<UserChartInfo[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (allUsers.length === 0) {
+            setChartData([]);
+            setUserInfos([]);
+            setIsLoading(false);
+            return;
+        }
+
+        const fetchAllData = async () => {
+            setIsLoading(true);
+            try {
+                // Prepare user infos with colors
+                const infos: UserChartInfo[] = allUsers.map((user, idx) => ({
+                    name: user.name,
+                    avatar: user.avatar,
+                    // Current user gets first color, others follow
+                    color: user.id === currentUserId ? USER_COLORS[0] : USER_COLORS[(idx + 1) % USER_COLORS.length]
+                }));
+                setUserInfos(infos);
+
+                // Fetch records for all users
+                const allRecords: { userId: number; userName: string; timestamp: number; wpm: number }[] = [];
+
+                for (const user of allUsers) {
+                    if (!user.id) continue;
+                    const records = await db.records
+                        .where('userId')
+                        .equals(user.id)
+                        .toArray();
+
+                    records.forEach(r => {
+                        allRecords.push({
+                            userId: user.id!,
+                            userName: user.name,
+                            timestamp: r.timestamp,
+                            wpm: r.wpm
+                        });
+                    });
+                }
+
+                if (allRecords.length === 0) {
+                    setChartData([]);
+                    setIsLoading(false);
+                    return;
+                }
+
+                // Sort by timestamp
+                allRecords.sort((a, b) => a.timestamp - b.timestamp);
+
+                // Get last 20 unique timestamps for better visualization
+                const uniqueTimestamps = [...new Set(allRecords.map(r => r.timestamp))].slice(-20);
+
+                // Create chart data with all users' WPM at each timestamp
+                const data: MultiUserChartData[] = uniqueTimestamps.map(ts => {
+                    const point: MultiUserChartData = {
+                        date: format(new Date(ts), 'MM/dd HH:mm'),
+                        timestamp: ts
+                    };
+
+                    // Find WPM for each user at this or closest previous timestamp
+                    allUsers.forEach(user => {
+                        const userRecord = allRecords.find(r => r.timestamp === ts && r.userName === user.name);
+                        if (userRecord) {
+                            point[user.name] = userRecord.wpm;
+                        }
+                    });
+
+                    return point;
+                });
+
+                setChartData(data);
+            } catch (error) {
+                console.error('Failed to fetch all users chart data:', error);
+                setChartData([]);
+            }
+            setIsLoading(false);
+        };
+
+        fetchAllData();
+    }, [allUsers, currentUserId]);
+
+    return { chartData, userInfos, isLoading };
+}
+
 // Stat Card Component
 const StatCard: React.FC<{
     icon: React.ReactNode;
@@ -202,6 +318,12 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
     const [editAvatar, setEditAvatar] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
+    // Chart comparison state (default: on)
+    const [showComparison, setShowComparison] = useState(true);
+
+    // Get all users chart data for comparison
+    const allUsersChart = useAllUsersChartData(currentUser?.id);
+
     const t = language === 'cn' ? {
         title: '我的成长',
         subtitle: '看看你已经走了多远！',
@@ -221,6 +343,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
         avatar: '选择头像',
         save: '保存',
         cancel: '取消',
+        compareAll: '对比所有用户',
     } : {
         title: 'My Progress',
         subtitle: 'Look how far you\'ve come!',
@@ -240,6 +363,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
         avatar: 'Choose Avatar',
         save: 'Save',
         cancel: 'Cancel',
+        compareAll: 'Compare All Users',
     };
 
     if (!currentUser) return null;
@@ -500,53 +624,149 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
             </div>
 
             {/* Progress Chart */}
-            {stats.chartData.length > 0 && (
+            {(stats.chartData.length > 0 || (showComparison && allUsersChart.chartData.length > 0)) && (
                 <motion.div
                     className="bg-white rounded-3xl p-6 shadow-lg"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 }}
                 >
-                    <h3 className="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
-                        <Trophy size={20} className="text-kid-purple" />
-                        {t.progressChart}
-                    </h3>
-                    <div className="h-48">
+                    {/* Header with toggle */}
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-gray-700 flex items-center gap-2">
+                            <Trophy size={20} className="text-kid-purple" />
+                            {t.progressChart}
+                        </h3>
+
+                        {/* Comparison Toggle */}
+                        {allUsersChart.userInfos.length > 1 && (
+                            <button
+                                onClick={() => setShowComparison(!showComparison)}
+                                className={`
+                                    flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all
+                                    ${showComparison
+                                        ? 'bg-kid-purple text-white'
+                                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                    }
+                                `}
+                            >
+                                <Users size={16} />
+                                {t.compareAll}
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Chart */}
+                    <div className="h-56">
                         <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={stats.chartData}>
-                                <XAxis
-                                    dataKey="date"
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fontSize: 12, fill: '#9CA3AF' }}
-                                />
-                                <YAxis
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fontSize: 12, fill: '#9CA3AF' }}
-                                    domain={['dataMin - 5', 'dataMax + 5']}
-                                />
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: 'white',
-                                        border: 'none',
-                                        borderRadius: '12px',
-                                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                                    }}
-                                    labelFormatter={(label) => label}
-                                    formatter={(value: number) => [`${value} WPM`, 'Speed']}
-                                />
-                                <Line
-                                    type="monotone"
-                                    dataKey="wpm"
-                                    stroke="#8B5CF6"
-                                    strokeWidth={3}
-                                    dot={{ fill: '#8B5CF6', strokeWidth: 2, r: 4 }}
-                                    activeDot={{ r: 6, fill: '#7C3AED' }}
-                                />
-                            </LineChart>
+                            {showComparison && allUsersChart.chartData.length > 0 ? (
+                                // Multi-user comparison chart
+                                <LineChart data={allUsersChart.chartData}>
+                                    <XAxis
+                                        dataKey="date"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fontSize: 11, fill: '#9CA3AF' }}
+                                    />
+                                    <YAxis
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fontSize: 12, fill: '#9CA3AF' }}
+                                        domain={['dataMin - 5', 'dataMax + 5']}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: 'white',
+                                            border: 'none',
+                                            borderRadius: '12px',
+                                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                                        }}
+                                        labelFormatter={(label) => label}
+                                        formatter={(value: number, name: string) => [`${value} WPM`, name]}
+                                    />
+                                    <Legend
+                                        wrapperStyle={{ paddingTop: 10 }}
+                                        formatter={(value) => {
+                                            const userInfo = allUsersChart.userInfos.find(u => u.name === value);
+                                            return (
+                                                <span className="text-sm">
+                                                    {userInfo?.avatar} {value}
+                                                </span>
+                                            );
+                                        }}
+                                    />
+                                    {allUsersChart.userInfos.map((user) => (
+                                        <Line
+                                            key={user.name}
+                                            type="monotone"
+                                            dataKey={user.name}
+                                            stroke={user.color}
+                                            strokeWidth={user.name === currentUser?.name ? 3 : 2}
+                                            dot={{ fill: user.color, strokeWidth: 2, r: user.name === currentUser?.name ? 4 : 3 }}
+                                            activeDot={{ r: 6, fill: user.color }}
+                                            connectNulls
+                                        />
+                                    ))}
+                                </LineChart>
+                            ) : (
+                                // Single user chart
+                                <LineChart data={stats.chartData}>
+                                    <XAxis
+                                        dataKey="date"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fontSize: 12, fill: '#9CA3AF' }}
+                                    />
+                                    <YAxis
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fontSize: 12, fill: '#9CA3AF' }}
+                                        domain={['dataMin - 5', 'dataMax + 5']}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: 'white',
+                                            border: 'none',
+                                            borderRadius: '12px',
+                                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                                        }}
+                                        labelFormatter={(label) => label}
+                                        formatter={(value: number) => [`${value} WPM`, 'Speed']}
+                                    />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="wpm"
+                                        stroke="#8B5CF6"
+                                        strokeWidth={3}
+                                        dot={{ fill: '#8B5CF6', strokeWidth: 2, r: 4 }}
+                                        activeDot={{ r: 6, fill: '#7C3AED' }}
+                                    />
+                                </LineChart>
+                            )}
                         </ResponsiveContainer>
                     </div>
+
+                    {/* User Legend (when comparison is on) */}
+                    {showComparison && allUsersChart.userInfos.length > 1 && (
+                        <div className="mt-4 flex flex-wrap gap-3 justify-center">
+                            {allUsersChart.userInfos.map(user => (
+                                <div
+                                    key={user.name}
+                                    className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${user.name === currentUser?.name
+                                            ? 'bg-purple-100 font-medium'
+                                            : 'bg-gray-100'
+                                        }`}
+                                >
+                                    <div
+                                        className="w-3 h-3 rounded-full"
+                                        style={{ backgroundColor: user.color }}
+                                    />
+                                    <span>{user.avatar}</span>
+                                    <span className="text-gray-700">{user.name}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </motion.div>
             )}
 
