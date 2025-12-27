@@ -219,8 +219,8 @@ function useAllUsersChartData(currentUserId: number | undefined) {
                 }));
                 setUserInfos(infos);
 
-                // Fetch records for all users
-                const allRecords: { userId: number; userName: string; timestamp: number; wpm: number }[] = [];
+                // Fetch records for all users and organize by user
+                const userRecordsMap: Map<string, { timestamp: number; wpm: number }[]> = new Map();
 
                 for (const user of allUsers) {
                     if (!user.id) continue;
@@ -229,44 +229,74 @@ function useAllUsersChartData(currentUserId: number | undefined) {
                         .equals(user.id)
                         .toArray();
 
-                    records.forEach(r => {
-                        allRecords.push({
-                            userId: user.id!,
-                            userName: user.name,
-                            timestamp: r.timestamp,
-                            wpm: r.wpm
-                        });
-                    });
+                    // Sort by timestamp ascending
+                    const sortedRecords = records
+                        .map(r => ({ timestamp: r.timestamp, wpm: r.wpm }))
+                        .sort((a, b) => a.timestamp - b.timestamp);
+
+                    userRecordsMap.set(user.name, sortedRecords);
                 }
 
-                if (allRecords.length === 0) {
+                // Collect all unique timestamps from all users
+                const allTimestamps = new Set<number>();
+                userRecordsMap.forEach(records => {
+                    records.forEach(r => allTimestamps.add(r.timestamp));
+                });
+
+                if (allTimestamps.size === 0) {
                     setChartData([]);
                     setIsLoading(false);
                     return;
                 }
 
-                // Sort by timestamp
-                allRecords.sort((a, b) => a.timestamp - b.timestamp);
+                // Sort timestamps ascending
+                let sortedTimestamps = [...allTimestamps].sort((a, b) => a - b);
 
-                // Get last 20 unique timestamps for better visualization
-                const uniqueTimestamps = [...new Set(allRecords.map(r => r.timestamp))].slice(-20);
+                // If too many data points, sample evenly to keep chart readable (max 50 points)
+                const MAX_DATA_POINTS = 50;
+                if (sortedTimestamps.length > MAX_DATA_POINTS) {
+                    const step = Math.ceil(sortedTimestamps.length / MAX_DATA_POINTS);
+                    const sampled: number[] = [];
+                    for (let i = 0; i < sortedTimestamps.length; i += step) {
+                        sampled.push(sortedTimestamps[i]);
+                    }
+                    // Always include the last timestamp
+                    if (sampled[sampled.length - 1] !== sortedTimestamps[sortedTimestamps.length - 1]) {
+                        sampled.push(sortedTimestamps[sortedTimestamps.length - 1]);
+                    }
+                    sortedTimestamps = sampled;
+                }
 
-                // Create chart data with all users' WPM at each timestamp
-                const data: MultiUserChartData[] = uniqueTimestamps.map(ts => {
+                // Build chart data with forward-fill strategy
+                // Each user's value is their most recent WPM at or before that timestamp
+                const data: MultiUserChartData[] = [];
+
+                sortedTimestamps.forEach(ts => {
                     const point: MultiUserChartData = {
                         date: format(new Date(ts), 'MM/dd HH:mm'),
                         timestamp: ts
                     };
 
-                    // Find WPM for each user at this or closest previous timestamp
+                    // For each user, find their most recent record at or before this timestamp
                     allUsers.forEach(user => {
-                        const userRecord = allRecords.find(r => r.timestamp === ts && r.userName === user.name);
-                        if (userRecord) {
-                            point[user.name] = userRecord.wpm;
+                        const userRecords = userRecordsMap.get(user.name) || [];
+                        // Find the latest record at or before this timestamp
+                        let latestRecord: { timestamp: number; wpm: number } | undefined;
+                        for (const record of userRecords) {
+                            if (record.timestamp <= ts) {
+                                latestRecord = record;
+                            } else {
+                                break; // records are sorted, no need to continue
+                            }
                         }
+
+                        if (latestRecord) {
+                            point[user.name] = latestRecord.wpm;
+                        }
+                        // If no record before this time, user hasn't practiced yet - leave undefined
                     });
 
-                    return point;
+                    data.push(point);
                 });
 
                 setChartData(data);

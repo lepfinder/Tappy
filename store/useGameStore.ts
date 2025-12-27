@@ -66,10 +66,13 @@ interface GameStore {
   calculateStats: () => PracticeResult;
 }
 
+// Track finish order globally within a race session
+let raceFinishedRankCounter = 0;
+
 const DEFAULT_BOTS: Participant[] = [
-  { id: 'bot1', name: 'Bot A', type: 'bot', progress: 0, speed: 3 }, // Slow
-  { id: 'bot2', name: 'Bot B', type: 'bot', progress: 0, speed: 5 }, // Medium
-  { id: 'bot3', name: 'Bot C', type: 'bot', progress: 0, speed: 7 }, // Fast
+  { id: 'bot1', name: 'Bot A', type: 'bot', progress: 0, speed: 1.5 }, // Slow
+  { id: 'bot2', name: 'Bot B', type: 'bot', progress: 0, speed: 2.5 }, // Medium
+  { id: 'bot3', name: 'Bot C', type: 'bot', progress: 0, speed: 4 }, // Fast
 ];
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -159,11 +162,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // Prepare Race State if mode is Race
     let raceStatePartial = {};
     if (selectedMode === 'RACE_100M') {
+      raceFinishedRankCounter = 0; // Reset finish order for new race
       raceStatePartial = {
         raceStatus: 'countdown',
         participants: [
-          { id: 'player', name: 'You', type: 'player', progress: 0, speed: 0 },
-          ...DEFAULT_BOTS.map(b => ({ ...b, progress: 0 }))
+          { id: 'player', name: 'You', type: 'player', progress: 0, speed: 0, finishedRank: undefined },
+          ...DEFAULT_BOTS.map(b => ({ ...b, progress: 0, finishedRank: undefined }))
         ]
       };
     }
@@ -199,17 +203,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { raceStatus, participants } = get();
     if (raceStatus !== 'racing') return;
 
-    let anyoneFinished = false;
-
     const newParticipants = participants.map(p => {
       if (p.type === 'player' || p.progress >= 100) return p;
 
       // Bot logic: move forward based on speed + random jitter
-      const jitter = Math.random() * 2;
+      const jitter = Math.random() * 1.5;
       const move = (p.speed + jitter) * dt;
       const newProgress = Math.min(100, p.progress + move);
 
-      if (newProgress >= 100) anyoneFinished = true;
+      // Record finish order when bot crosses finish line
+      if (newProgress >= 100 && p.finishedRank === undefined) {
+        raceFinishedRankCounter++;
+        return { ...p, progress: newProgress, finishedRank: raceFinishedRankCounter };
+      }
       return { ...p, progress: newProgress };
     });
 
@@ -226,11 +232,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     let raceStatePartial = {};
     if (selectedMode === 'RACE_100M') {
+      raceFinishedRankCounter = 0; // Reset finish order for restart
       raceStatePartial = {
         raceStatus: 'countdown',
         participants: [
-          { id: 'player', name: 'You', type: 'player', progress: 0, speed: 0 },
-          ...DEFAULT_BOTS.map(b => ({ ...b, progress: 0 }))
+          { id: 'player', name: 'You', type: 'player', progress: 0, speed: 0, finishedRank: undefined },
+          ...DEFAULT_BOTS.map(b => ({ ...b, progress: 0, finishedRank: undefined }))
         ]
       };
     }
@@ -277,10 +284,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (isLast) {
       playSound('win');
       if (selectedMode === 'RACE_100M') {
-        set({ raceStatus: 'finished', view: 'RESULT', isPlaying: false });
-        // Force player progress to 100 in case of rounding
+        // Record player's finish order
+        raceFinishedRankCounter++;
         const { participants } = get();
-        set({ participants: participants.map(p => p.type === 'player' ? { ...p, progress: 100 } : p) });
+        set({
+          raceStatus: 'finished',
+          view: 'RESULT',
+          isPlaying: false,
+          participants: participants.map(p => p.type === 'player' ? { ...p, progress: 100, finishedRank: raceFinishedRankCounter } : p)
+        });
       } else {
         set({ view: 'RESULT', isPlaying: false });
       }
