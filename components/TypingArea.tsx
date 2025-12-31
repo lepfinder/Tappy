@@ -149,75 +149,86 @@ export const TypingArea: React.FC = () => {
     }
   }, [view, stats]);
 
-  // TTS Logic - Play character audio on completion
+  // TTS Logic - Play audio immediately when pendingTTS is set
+  const { pendingTTS, clearPendingTTS } = useGameStore();
+
   useEffect(() => {
-    if (!currentLevel) return;
+    if (!pendingTTS) return;
 
-    const isEnglish = selectedMode?.startsWith('EN') || selectedMode === 'RACE_100M';
-    const isGameView = view === 'GAME';
-    const isResultView = view === 'RESULT';
-
-    if (!isGameView && !isResultView) return;
-
-    // 1. Detect Challenge Completion
-    const justFinishedLast = isResultView && currentChallengeIndex === prevChallengeRef.current && prevChallengeRef.current === currentLevel.challenges.length - 1;
-    const justMovedNext = currentChallengeIndex > prevChallengeRef.current;
-
-    if (justMovedNext || justFinishedLast) {
-      const completedIndex = prevChallengeRef.current;
-      const completedItem = currentLevel.challenges[completedIndex];
-
-      if (completedItem) {
-        if (isEnglish) {
-          speak(completedItem.display, 'en-US', true);
-        } else {
-          // Chinese: Read the last character
-          const chars = completedItem.display.split('');
-          const lastChar = chars[chars.length - 1];
-          if (lastChar) speak(lastChar, 'zh-CN', false);
-        }
-      }
+    // Play the TTS immediately
+    if (pendingTTS.type === 'phrase') {
+      speakPhrase(pendingTTS.text, true);
+    } else {
+      speak(pendingTTS.text, pendingTTS.lang, true);
     }
 
-    // 2. Detect Syllable/Char Completion (Chinese)
-    if (!isEnglish && isGameView && currentSyllableIndex > prevSyllableRef.current && currentChallengeIndex === prevChallengeRef.current) {
-      const finishedCharIndex = currentSyllableIndex - 1;
-      const currentItem = currentLevel.challenges[currentChallengeIndex];
+    // Clear the pending TTS state
+    clearPendingTTS();
+  }, [pendingTTS, speak, speakPhrase, clearPendingTTS]);
 
-      if (currentItem) {
-        const chars = currentItem.display.split('');
-        const char = chars[finishedCharIndex];
-        if (char) speak(char, 'zh-CN', false);
-      }
-    }
-
-    if (isGameView || justFinishedLast) {
+  // Keep refs in sync for other logic (no longer used for TTS, kept for future use)
+  useEffect(() => {
+    if (view === 'GAME' || view === 'RESULT') {
       prevChallengeRef.current = currentChallengeIndex;
       prevSyllableRef.current = currentSyllableIndex;
     }
-  }, [currentChallengeIndex, currentSyllableIndex, currentLevel, selectedMode, speak, view]);
+  }, [currentChallengeIndex, currentSyllableIndex, view]);
 
-  // TTS Logic - Play full sentence/phrase at start of each challenge (Chinese sentences only)
+  // Result page keyboard shortcuts state
+  const [hotkeyEnabled, setHotkeyEnabled] = useState(false);
+  const resultShownTimeRef = useRef<number>(0);
+
+  // Enable hotkeys after 1 second delay when entering result view
   useEffect(() => {
-    if (!currentLevel) return;
-    if (view !== 'GAME') return;
-
-    const isEnglish = selectedMode?.startsWith('EN') || selectedMode === 'RACE_100M';
-    const isCnSentenceMode = selectedMode?.startsWith('CN_S') || selectedMode?.startsWith('CN_POEM') || selectedMode?.startsWith('CN_ESSAY');
-
-    // Only for Chinese sentence modes - play full phrase when entering a new challenge
-    if (!isEnglish && isCnSentenceMode) {
-      const currentChallenge = currentLevel.challenges[currentChallengeIndex];
-      if (currentChallenge && currentSyllableIndex === 0) {
-        // Play the full phrase at the start - use interrupt=false to not cut off previous char audio
-        // Add small delay to let previous char audio finish
-        const timer = setTimeout(() => {
-          speakPhrase(currentChallenge.display, false);
-        }, 300);
-        return () => clearTimeout(timer);
-      }
+    if (view === 'RESULT') {
+      resultShownTimeRef.current = Date.now();
+      setHotkeyEnabled(false);
+      const timer = setTimeout(() => {
+        setHotkeyEnabled(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else {
+      setHotkeyEnabled(false);
     }
-  }, [currentChallengeIndex, currentLevel, selectedMode, speakPhrase, view, currentSyllableIndex]);
+  }, [view]);
+
+  // Result page keyboard shortcuts
+  useEffect(() => {
+    if (view !== 'RESULT' || !hotkeyEnabled) return;
+
+    const hasNext = currentLevel && availableLevels.findIndex(l => l.id === currentLevel.id) < availableLevels.length - 1;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Prevent if still in cooldown
+      if (Date.now() - resultShownTimeRef.current < 1000) return;
+
+      const key = e.key.toLowerCase();
+
+      // Enter or Space → Next Level (if available)
+      if ((e.key === 'Enter' || e.key === ' ') && hasNext) {
+        e.preventDefault();
+        nextLevel();
+        return;
+      }
+
+      // R → Replay
+      if (key === 'r') {
+        e.preventDefault();
+        restartLevel();
+        return;
+      }
+
+      // Escape → Back to List
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        exitGame();
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [view, hotkeyEnabled, currentLevel, availableLevels, nextLevel, restartLevel, exitGame]);
 
   if (view === 'RESULT') {
     const hasNext = currentLevel && availableLevels.findIndex(l => l.id === currentLevel.id) < availableLevels.length - 1;
@@ -357,7 +368,7 @@ export const TypingArea: React.FC = () => {
           </motion.div>
         </div>
 
-        {/* Action Buttons with staggered fade-in */}
+        {/* Action Buttons with staggered fade-in and hotkey hints */}
         <motion.div
           className="flex gap-4"
           initial={{ opacity: 0, y: 20 }}
@@ -369,12 +380,14 @@ export const TypingArea: React.FC = () => {
             className="px-6 py-2 bg-gray-200 rounded-full font-bold text-gray-600 flex items-center gap-2 hover:bg-gray-300 transition-colors hover:scale-105 active:scale-95"
           >
             <RotateCcw size={18} /> {t.replay}
+            <span className="text-xs opacity-50 ml-1">[R]</span>
           </button>
           <button
             onClick={exitGame}
             className="px-6 py-2 bg-gray-200 rounded-full font-bold text-gray-600 flex items-center gap-2 hover:bg-gray-300 transition-colors hover:scale-105 active:scale-95"
           >
             <Menu size={18} /> {t.levels}
+            <span className="text-xs opacity-50 ml-1">[Esc]</span>
           </button>
           {hasNext && (
             <button
@@ -382,6 +395,7 @@ export const TypingArea: React.FC = () => {
               className="px-6 py-2 bg-kid-blue text-white rounded-full font-bold flex items-center gap-2 hover:bg-blue-400 shadow-lg transition-all hover:scale-105 active:scale-95"
             >
               {t.next} <ArrowRight size={18} />
+              <span className="text-xs opacity-60 ml-1">⏎</span>
             </button>
           )}
         </motion.div>

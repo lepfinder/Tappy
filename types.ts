@@ -11,7 +11,7 @@ export type GameMode =
   | 'CN_POEMS'
   | 'RACE_100M';
 
-export type ViewState = 'HOME' | 'LEVELS' | 'GAME' | 'RESULT' | 'PROFILE';
+export type ViewState = 'HOME' | 'LEVELS' | 'GAME' | 'RESULT' | 'PROFILE' | 'STATS';
 export type Language = 'en' | 'cn';
 
 export interface ChallengeItem {

@@ -9,6 +9,7 @@ import { UserSwitcher } from './components/UserSwitcher';
 import { UserOnboardingModal } from './components/UserOnboardingModal';
 import { UserSwitchTransition } from './components/UserSwitchTransition';
 import { UserProfile } from './components/UserProfile';
+import { StatsPage } from './components/StatsPage';
 import { useGameStore } from './store/useGameStore';
 import { useUserStore } from './store/useUserStore';
 import { TRANSLATIONS } from './i18n';
@@ -172,6 +173,8 @@ const App: React.FC = () => {
         {view === 'LEVELS' && <LevelSelectScreen />}
 
         {view === 'PROFILE' && <UserProfile onBack={() => setView('HOME')} />}
+
+        {view === 'STATS' && <StatsPage onBack={() => setView('HOME')} />}
 
         {(view === 'GAME' || view === 'RESULT') && (
           <div className="w-full flex flex-col items-center animate-slide-up">

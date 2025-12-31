@@ -56,7 +56,7 @@ interface UserStats {
     avgAccuracy: number;
     totalStars: number;
     recentRecords: PracticeRecord[];
-    chartData: { date: string; wpm: number; accuracy: number }[];
+    chartData: { index: number; wpm: number; accuracy: number }[];
     isLoading: boolean;
 }
 
@@ -125,15 +125,12 @@ function useUserStats(userId: number | undefined): UserStats {
                 const sorted = [...records].sort((a, b) => b.timestamp - a.timestamp);
                 const recentRecords = sorted.slice(0, 5);
 
-                // Chart data (last 10 records, but show chronologically)
+                // Chart data (last 10 records, use index for x-axis)
                 const last10 = sorted.slice(0, 10).reverse();
                 const chartData = last10.map((r, idx) => ({
-                    // Use index + time for unique identification
-                    date: format(new Date(r.timestamp), 'MM/dd HH:mm'),
-                    displayDate: format(new Date(r.timestamp), 'MM/dd'),
+                    index: idx + 1,
                     wpm: r.wpm,
-                    accuracy: r.accuracy,
-                    idx: idx + 1 // For tooltip reference
+                    accuracy: r.accuracy
                 }));
 
                 setStats({
@@ -181,8 +178,7 @@ const USER_COLORS = [
 
 // Interface for multi-user chart data
 interface MultiUserChartData {
-    date: string;
-    timestamp: number;
+    index: number;
     [userName: string]: string | number; // dynamic user names as keys
 }
 
@@ -267,37 +263,34 @@ function useAllUsersChartData(currentUserId: number | undefined) {
                     sortedTimestamps = sampled;
                 }
 
-                // Build chart data with forward-fill strategy
-                // Each user's value is their most recent WPM at or before that timestamp
+                // Build chart data using index instead of timestamps
+                // Use the max record count among all users
+                let maxRecords = 0;
+                userRecordsMap.forEach(records => {
+                    maxRecords = Math.max(maxRecords, records.length);
+                });
+
+                // Limit to last 50 records
+                const displayCount = Math.min(maxRecords, 50);
                 const data: MultiUserChartData[] = [];
 
-                sortedTimestamps.forEach(ts => {
+                for (let i = 0; i < displayCount; i++) {
                     const point: MultiUserChartData = {
-                        date: format(new Date(ts), 'MM/dd HH:mm'),
-                        timestamp: ts
+                        index: i + 1
                     };
 
-                    // For each user, find their most recent record at or before this timestamp
+                    // For each user, get their record at this index from the end
                     allUsers.forEach(user => {
                         const userRecords = userRecordsMap.get(user.name) || [];
-                        // Find the latest record at or before this timestamp
-                        let latestRecord: { timestamp: number; wpm: number } | undefined;
-                        for (const record of userRecords) {
-                            if (record.timestamp <= ts) {
-                                latestRecord = record;
-                            } else {
-                                break; // records are sorted, no need to continue
-                            }
+                        const startIdx = Math.max(0, userRecords.length - displayCount);
+                        const recordIdx = startIdx + i;
+                        if (recordIdx < userRecords.length) {
+                            point[user.name] = userRecords[recordIdx].wpm;
                         }
-
-                        if (latestRecord) {
-                            point[user.name] = latestRecord.wpm;
-                        }
-                        // If no record before this time, user hasn't practiced yet - leave undefined
                     });
 
                     data.push(point);
-                });
+                }
 
                 setChartData(data);
             } catch (error) {
@@ -804,10 +797,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
                                 // Multi-user comparison chart
                                 <LineChart data={allUsersChart.chartData}>
                                     <XAxis
-                                        dataKey="date"
+                                        dataKey="index"
                                         axisLine={false}
                                         tickLine={false}
                                         tick={{ fontSize: 11, fill: '#9CA3AF' }}
+                                        interval="preserveStartEnd"
                                     />
                                     <YAxis
                                         axisLine={false}
@@ -853,10 +847,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
                                 // Single user chart
                                 <LineChart data={stats.chartData}>
                                     <XAxis
-                                        dataKey="date"
+                                        dataKey="index"
                                         axisLine={false}
                                         tickLine={false}
                                         tick={{ fontSize: 12, fill: '#9CA3AF' }}
+                                        interval="preserveStartEnd"
                                     />
                                     <YAxis
                                         axisLine={false}

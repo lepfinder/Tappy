@@ -28,6 +28,10 @@ interface GameStore {
   currentSyllableIndex: number;
   lastInputError: boolean;
 
+  // TTS State - triggers immediate TTS playback
+  pendingTTS: { text: string; type: 'char' | 'phrase' | 'word'; lang: 'zh-CN' | 'en-US' } | null;
+  clearPendingTTS: () => void;
+
   // Stats
   score: number;
   errors: number;
@@ -97,6 +101,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
   typedHistory: '',
   currentSyllableIndex: 0,
   lastInputError: false,
+
+  // TTS State - triggers immediate TTS playback
+  pendingTTS: null,
+  clearPendingTTS: () => set({ pendingTTS: null }),
+
   score: 0,
   errors: 0,
   isPlaying: false,
@@ -113,6 +122,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   raceStatus: 'idle',
   participants: [],
+
 
   goHome: () => {
     set({
@@ -382,8 +392,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if (normalizedKey === nextChar) {
         const newHistory = handleSuccess();
         if (newHistory.length === targetStr.length) {
-          // In race mode, instant transition
-          const delay = selectedMode === 'RACE_100M' ? 50 : 200;
+          // Trigger TTS immediately for the completed word
+          if (selectedMode !== 'RACE_100M') {
+            set({ pendingTTS: { text: currentItem.display, type: 'word', lang: 'en-US' } });
+          }
+          // In race mode, instant transition; otherwise delay to allow TTS to finish
+          const delay = selectedMode === 'RACE_100M' ? 50 : 500;
           setTimeout(() => nextChallenge(), delay);
         }
       } else {
@@ -395,6 +409,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const syllables = currentItem.pinyin || [];
       const currentTargetSyllable = syllables[currentSyllableIndex];
       const expectedChar = currentTargetSyllable ? currentTargetSyllable[typedHistory.length] : undefined;
+      const isSentenceMode = selectedMode === 'CN_SENTENCES' || selectedMode === 'CN_POEMS' || selectedMode === 'CN_ESSAYS';
 
       if (expectedChar && normalizedKey === expectedChar) {
         const newHistory = handleSuccess();
@@ -403,12 +418,45 @@ export const useGameStore = create<GameStore>((set, get) => ({
           set({ correctHanzi: get().correctHanzi + 1 });
 
           if (currentSyllableIndex + 1 >= syllables.length) {
-            setTimeout(() => nextChallenge(), 200);
+            // Challenge completed - trigger TTS immediately
+            if (isSentenceMode) {
+              // For sentence/poem modes: play full phrase
+              set({ pendingTTS: { text: currentItem.display, type: 'phrase', lang: 'zh-CN' } });
+            } else {
+              // For CN_PINYIN: play the last character
+              const chars = currentItem.display.split('');
+              const lastChar = chars[chars.length - 1];
+              if (lastChar) {
+                set({ pendingTTS: { text: lastChar, type: 'char', lang: 'zh-CN' } });
+              }
+            }
+            // Delay to allow TTS to finish
+            const delay = isSentenceMode ? 1000 : 500;
+            setTimeout(() => nextChallenge(), delay);
           } else {
-            set({
-              currentSyllableIndex: currentSyllableIndex + 1,
-              typedHistory: ''
-            });
+            // Syllable completed within same challenge
+            // For sentence modes: no per-character TTS, no delay
+            // For CN_PINYIN: play the character TTS with delay
+            if (!isSentenceMode) {
+              const chars = currentItem.display.split('');
+              const completedChar = chars[currentSyllableIndex];
+              if (completedChar) {
+                set({ pendingTTS: { text: completedChar, type: 'char', lang: 'zh-CN' } });
+              }
+              // Moving to next syllable: 500ms delay for character TTS
+              setTimeout(() => {
+                set({
+                  currentSyllableIndex: currentSyllableIndex + 1,
+                  typedHistory: ''
+                });
+              }, 500);
+            } else {
+              // For sentence modes: immediate transition, no TTS
+              set({
+                currentSyllableIndex: currentSyllableIndex + 1,
+                typedHistory: ''
+              });
+            }
           }
         }
       } else {
