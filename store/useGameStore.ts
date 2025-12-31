@@ -10,6 +10,8 @@ interface GameStore {
   setLanguage: (lang: Language) => void;
   soundEnabled: boolean;
   setSoundEnabled: (enabled: boolean) => void;
+  ttsEnabled: boolean;
+  setTtsEnabled: (enabled: boolean) => void;
 
   // Navigation
   view: ViewState;
@@ -83,6 +85,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     setSoundEnabled(enabled);
     set({ soundEnabled: enabled });
   },
+  ttsEnabled: true,
+  setTtsEnabled: (enabled) => set({ ttsEnabled: enabled }),
 
   view: 'HOME',
   selectedMode: null,

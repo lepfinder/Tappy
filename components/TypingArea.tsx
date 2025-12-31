@@ -3,6 +3,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../store/useGameStore';
 import { useUserStore } from '../store/useUserStore';
+import { useTTS } from '../hooks/useTTS';
 import { TRANSLATIONS } from '../i18n';
 import { Star, RotateCcw, Menu, ArrowRight, Zap, Target, Flame, AlertCircle } from 'lucide-react';
 
@@ -89,6 +90,11 @@ export const TypingArea: React.FC = () => {
 
   const { saveRecord, currentUser } = useUserStore();
   const t = TRANSLATIONS[language];
+  const { speak, speakPhrase } = useTTS();
+
+  // Refs for tracking progress to trigger TTS
+  const prevChallengeRef = useRef(currentChallengeIndex);
+  const prevSyllableRef = useRef(currentSyllableIndex);
 
   // Calculate stats when entering result view
   const [stats, setStats] = useState(practiceResult);
@@ -142,6 +148,76 @@ export const TypingArea: React.FC = () => {
       return () => timers.forEach(clearTimeout);
     }
   }, [view, stats]);
+
+  // TTS Logic - Play character audio on completion
+  useEffect(() => {
+    if (!currentLevel) return;
+
+    const isEnglish = selectedMode?.startsWith('EN') || selectedMode === 'RACE_100M';
+    const isGameView = view === 'GAME';
+    const isResultView = view === 'RESULT';
+
+    if (!isGameView && !isResultView) return;
+
+    // 1. Detect Challenge Completion
+    const justFinishedLast = isResultView && currentChallengeIndex === prevChallengeRef.current && prevChallengeRef.current === currentLevel.challenges.length - 1;
+    const justMovedNext = currentChallengeIndex > prevChallengeRef.current;
+
+    if (justMovedNext || justFinishedLast) {
+      const completedIndex = prevChallengeRef.current;
+      const completedItem = currentLevel.challenges[completedIndex];
+
+      if (completedItem) {
+        if (isEnglish) {
+          speak(completedItem.display, 'en-US', true);
+        } else {
+          // Chinese: Read the last character
+          const chars = completedItem.display.split('');
+          const lastChar = chars[chars.length - 1];
+          if (lastChar) speak(lastChar, 'zh-CN', false);
+        }
+      }
+    }
+
+    // 2. Detect Syllable/Char Completion (Chinese)
+    if (!isEnglish && isGameView && currentSyllableIndex > prevSyllableRef.current && currentChallengeIndex === prevChallengeRef.current) {
+      const finishedCharIndex = currentSyllableIndex - 1;
+      const currentItem = currentLevel.challenges[currentChallengeIndex];
+
+      if (currentItem) {
+        const chars = currentItem.display.split('');
+        const char = chars[finishedCharIndex];
+        if (char) speak(char, 'zh-CN', false);
+      }
+    }
+
+    if (isGameView || justFinishedLast) {
+      prevChallengeRef.current = currentChallengeIndex;
+      prevSyllableRef.current = currentSyllableIndex;
+    }
+  }, [currentChallengeIndex, currentSyllableIndex, currentLevel, selectedMode, speak, view]);
+
+  // TTS Logic - Play full sentence/phrase at start of each challenge (Chinese sentences only)
+  useEffect(() => {
+    if (!currentLevel) return;
+    if (view !== 'GAME') return;
+
+    const isEnglish = selectedMode?.startsWith('EN') || selectedMode === 'RACE_100M';
+    const isCnSentenceMode = selectedMode?.startsWith('CN_S') || selectedMode?.startsWith('CN_POEM') || selectedMode?.startsWith('CN_ESSAY');
+
+    // Only for Chinese sentence modes - play full phrase when entering a new challenge
+    if (!isEnglish && isCnSentenceMode) {
+      const currentChallenge = currentLevel.challenges[currentChallengeIndex];
+      if (currentChallenge && currentSyllableIndex === 0) {
+        // Play the full phrase at the start - use interrupt=false to not cut off previous char audio
+        // Add small delay to let previous char audio finish
+        const timer = setTimeout(() => {
+          speakPhrase(currentChallenge.display, false);
+        }, 300);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [currentChallengeIndex, currentLevel, selectedMode, speakPhrase, view, currentSyllableIndex]);
 
   if (view === 'RESULT') {
     const hasNext = currentLevel && availableLevels.findIndex(l => l.id === currentLevel.id) < availableLevels.length - 1;

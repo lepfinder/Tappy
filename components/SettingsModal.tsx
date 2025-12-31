@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { X, Volume2, VolumeX, Download, Upload, CheckCircle, AlertCircle } from 'lucide-react';
+import { X, Volume2, VolumeX, Download, Upload, CheckCircle, AlertCircle, MessageSquare } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
 import { useUserStore } from '../store/useUserStore';
 import { db, User, PracticeRecord } from '../db';
@@ -18,7 +18,7 @@ interface ExportData {
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
-    const { language, soundEnabled, setSoundEnabled } = useGameStore();
+    const { language, soundEnabled, setSoundEnabled, ttsEnabled, setTtsEnabled } = useGameStore();
     const { refreshUsers, initialize } = useUserStore();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [exportStatus, setExportStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -32,6 +32,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         sound: '游戏音效',
         soundOn: '开启',
         soundOff: '关闭',
+        tts: '语音朗读',
         dataManagement: '数据管理',
         exportData: '导出数据',
         exportDesc: '将用户和练习记录导出为 JSON 文件',
@@ -46,6 +47,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         sound: 'Sound Effects',
         soundOn: 'On',
         soundOff: 'Off',
+        tts: 'Voice Narrator',
         dataManagement: 'Data Management',
         exportData: 'Export Data',
         exportDesc: 'Export users and records as JSON file',
@@ -221,6 +223,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                                 className={`
                                     absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300
                                     ${soundEnabled ? 'translate-x-7' : 'translate-x-1'}
+                                `}
+                            />
+                        </button>
+                    </div>
+
+                    {/* TTS Setting */}
+                    <div className="flex items-center justify-between bg-gray-50 rounded-xl p-4 mt-3">
+                        <div className="flex items-center gap-3">
+                            <MessageSquare className={`w-5 h-5 ${ttsEnabled ? 'text-kid-purple' : 'text-gray-400'}`} />
+                            <span className="font-medium text-gray-700">{content.tts}</span>
+                        </div>
+
+                        {/* Toggle Switch */}
+                        <button
+                            onClick={() => setTtsEnabled(!ttsEnabled)}
+                            className={`
+                                relative w-14 h-8 rounded-full transition-colors duration-300
+                                ${ttsEnabled ? 'bg-kid-purple' : 'bg-gray-300'}
+                            `}
+                        >
+                            <span
+                                className={`
+                                    absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300
+                                    ${ttsEnabled ? 'translate-x-7' : 'translate-x-1'}
                                 `}
                             />
                         </button>
