@@ -26,16 +26,26 @@ export interface PracticeRecord {
     timestamp: number;
 }
 
+// User badge interface for tracking unlocked badges
+export interface UserBadge {
+    id?: number;
+    odUserId: number;
+    badgeId: string;
+    unlockedAt: number;
+}
+
 // Create Dexie database instance
 const db = new Dexie('TappyDB') as Dexie & {
     users: EntityTable<User, 'id'>;
     records: EntityTable<PracticeRecord, 'id'>;
+    userBadges: EntityTable<UserBadge, 'id'>;
 };
 
-// Define database schema - Version 3 with emoji avatar
-db.version(3).stores({
+// Define database schema - Version 4 with badges
+db.version(4).stores({
     users: '++id, name, createdAt',
-    records: '++id, userId, levelId, timestamp'
+    records: '++id, userId, levelId, timestamp',
+    userBadges: '++id, odUserId, badgeId, unlockedAt'
 });
 
 export { db };

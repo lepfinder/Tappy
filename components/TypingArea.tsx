@@ -4,6 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../store/useGameStore';
 import { useUserStore } from '../store/useUserStore';
 import { useTTS } from '../hooks/useTTS';
+import { useBadgeSystem, SessionResult } from '../hooks/useBadgeSystem';
+import { Badge } from '../data/badges';
+import { BadgeUnlockModal } from './BadgeUnlockModal';
 import { TRANSLATIONS } from '../i18n';
 import { Star, RotateCcw, Menu, ArrowRight, Zap, Target, Flame, AlertCircle } from 'lucide-react';
 
@@ -101,6 +104,11 @@ export const TypingArea: React.FC = () => {
   const [showStars, setShowStars] = useState([false, false, false]);
   const [recordSaved, setRecordSaved] = useState(false);
 
+  // Badge unlock state
+  const [unlockedBadges, setUnlockedBadges] = useState<Badge[]>([]);
+  const [showBadgeModal, setShowBadgeModal] = useState(false);
+  const { checkAndUnlockBadges } = useBadgeSystem();
+
   useEffect(() => {
     if (view === 'RESULT' && !practiceResult) {
       const result = calculateStats();
@@ -128,8 +136,27 @@ export const TypingArea: React.FC = () => {
         timeSpent: stats.timeSpent
       });
       setRecordSaved(true);
+
+      // Check for badge unlocks
+      if (currentUser.id) {
+        const sessionResult: SessionResult = {
+          wpm: stats.wpm,
+          accuracy: stats.accuracy,
+          maxCombo: stats.maxCombo,
+          timeSpent: stats.timeSpent,
+          levelId: currentLevel.id,
+          mode: selectedMode || 'UNKNOWN'
+        };
+        checkAndUnlockBadges(currentUser.id, sessionResult).then(badges => {
+          if (badges.length > 0) {
+            setUnlockedBadges(badges);
+            // Show badge modal after a short delay for better UX
+            setTimeout(() => setShowBadgeModal(true), 1500);
+          }
+        });
+      }
     }
-  }, [view, stats, currentLevel, currentUser, selectedMode, saveRecord, recordSaved]);
+  }, [view, stats, currentLevel, currentUser, selectedMode, saveRecord, recordSaved, checkAndUnlockBadges]);
 
   // Animate stars appearing one by one
   useEffect(() => {
@@ -399,6 +426,18 @@ export const TypingArea: React.FC = () => {
             </button>
           )}
         </motion.div>
+
+        {/* Badge Unlock Modal */}
+        {showBadgeModal && unlockedBadges.length > 0 && (
+          <BadgeUnlockModal
+            badges={unlockedBadges}
+            onClose={() => {
+              setShowBadgeModal(false);
+              setUnlockedBadges([]);
+            }}
+            language={language}
+          />
+        )}
       </motion.div>
     );
   }
@@ -538,6 +577,40 @@ export const TypingArea: React.FC = () => {
           </div>
         );
       })()}
+    </>
+  );
+};
+
+// Re-export with Badge Modal wrapper
+export const TypingAreaWithBadges: React.FC = () => {
+  const { language } = useGameStore();
+  const [unlockedBadges, setUnlockedBadges] = useState<Badge[]>([]);
+  const [showBadgeModal, setShowBadgeModal] = useState(false);
+
+  // Listen for badge unlocks via custom event
+  useEffect(() => {
+    const handleBadgeUnlock = (e: CustomEvent<Badge[]>) => {
+      setUnlockedBadges(e.detail);
+      setShowBadgeModal(true);
+    };
+
+    window.addEventListener('badgeUnlock', handleBadgeUnlock as EventListener);
+    return () => window.removeEventListener('badgeUnlock', handleBadgeUnlock as EventListener);
+  }, []);
+
+  return (
+    <>
+      <TypingArea />
+      {showBadgeModal && unlockedBadges.length > 0 && (
+        <BadgeUnlockModal
+          badges={unlockedBadges}
+          onClose={() => {
+            setShowBadgeModal(false);
+            setUnlockedBadges([]);
+          }}
+          language={language}
+        />
+      )}
     </>
   );
 };

@@ -16,7 +16,8 @@ import { TRANSLATIONS } from './i18n';
 import { Languages, ChevronDown } from 'lucide-react';
 
 // Import bear logo
-import bearLogo from './images/bear_logo.png';
+// Import bear logo
+const bearLogo = '/images/bear_logo.png';
 
 const App: React.FC = () => {
   const { view, language, setLanguage, selectedMode, setView } = useGameStore();

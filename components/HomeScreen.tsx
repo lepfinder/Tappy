@@ -7,14 +7,15 @@ import { AboutModal } from './AboutModal';
 import { SettingsModal } from './SettingsModal';
 
 // Import icons
-import keyboardIcon from '../images/keyboard_icon.png';
-import mazeIcon from '../images/maze_icon.png';
-import puzzleIcon from '../images/puzzle_icon.png';
-import carIcon from '../images/car_icon.png';
-import pianoIcon from '../images/piano_icon.png';
-import bookIcon from '../images/book_icon.png';
-import numbersIcon from '../images/numbers_icon.png';
-import chineseIcon from '../images/chinese_icon.png';
+// Import icons
+const keyboardIcon = '/images/keyboard_icon.png';
+const mazeIcon = '/images/maze_icon.png';
+const puzzleIcon = '/images/puzzle_icon.png';
+const carIcon = '/images/car_icon.png';
+const pianoIcon = '/images/piano_icon.png';
+const bookIcon = '/images/book_icon.png';
+const numbersIcon = '/images/numbers_icon.png';
+const chineseIcon = '/images/chinese_icon.png';
 
 // Mode icon mapping
 const MODE_ICONS: Record<GameMode, string> = {

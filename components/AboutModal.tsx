@@ -3,9 +3,9 @@ import { X, Mail } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
 
 // Import bear logo
-import bearLogo from '../images/bear_logo.png';
+const bearLogo = '/images/bear_logo.png';
 // Import WeChat QR code
-import weixinQrcode from '../images/weixin_qrcode.jpg';
+const weixinQrcode = '/images/weixin_qrcode.jpg';
 
 interface AboutModalProps {
     isOpen: boolean;

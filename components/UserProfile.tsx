@@ -6,6 +6,7 @@ import { Clock, Zap, Trophy, Calendar, Target, ArrowLeft, Star, Edit3, X, Check,
 import { db, PracticeRecord, AVATAR_OPTIONS } from '../db';
 import { useUserStore } from '../store/useUserStore';
 import { useGameStore } from '../store/useGameStore';
+import { BadgeUnlockModal } from './BadgeUnlockModal';
 
 // Level configuration
 const LEVEL_CONFIG = [
@@ -57,6 +58,7 @@ interface UserStats {
     totalStars: number;
     recentRecords: PracticeRecord[];
     chartData: { index: number; wpm: number; accuracy: number }[];
+    heatmapData: { date: string; duration: number }[]; // Heatmap data for last 3 months
     isLoading: boolean;
 }
 
@@ -70,6 +72,7 @@ function useUserStats(userId: number | undefined): UserStats {
         totalStars: 0,
         recentRecords: [],
         chartData: [],
+        heatmapData: [],
         isLoading: true
     });
 
@@ -83,6 +86,7 @@ function useUserStats(userId: number | undefined): UserStats {
             totalStars: 0,
             recentRecords: [],
             chartData: [],
+            heatmapData: [],
             isLoading: true
         });
 
@@ -108,6 +112,7 @@ function useUserStats(userId: number | undefined): UserStats {
                         totalStars: 0,
                         recentRecords: [],
                         chartData: [],
+                        heatmapData: [],
                         isLoading: false
                     });
                     return;
@@ -133,6 +138,26 @@ function useUserStats(userId: number | undefined): UserStats {
                     accuracy: r.accuracy
                 }));
 
+                // Heatmap data - last 3 months
+                const threeMonthsAgo = new Date();
+                threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+                threeMonthsAgo.setHours(0, 0, 0, 0);
+
+                // Group records by date
+                const durationByDate = new Map<string, number>();
+                records.forEach(r => {
+                    if (r.timestamp >= threeMonthsAgo.getTime()) {
+                        const date = format(new Date(r.timestamp), 'yyyy-MM-dd');
+                        durationByDate.set(date, (durationByDate.get(date) || 0) + (r.timeSpent || 0));
+                    }
+                });
+
+                // Convert to array
+                const heatmapData = Array.from(durationByDate.entries()).map(([date, duration]) => ({
+                    date,
+                    duration
+                }));
+
                 setStats({
                     totalTime,
                     bestWpm,
@@ -141,6 +166,7 @@ function useUserStats(userId: number | undefined): UserStats {
                     totalStars,
                     recentRecords,
                     chartData,
+                    heatmapData,
                     isLoading: false
                 });
             } catch (error) {
@@ -153,6 +179,7 @@ function useUserStats(userId: number | undefined): UserStats {
                     totalStars: 0,
                     recentRecords: [],
                     chartData: [],
+                    heatmapData: [],
                     isLoading: false
                 });
             }
@@ -306,6 +333,185 @@ function useAllUsersChartData(currentUserId: number | undefined) {
     return { chartData, userInfos, isLoading };
 }
 
+// Import badges from data file
+import { BADGES, Badge } from '../data/badges';
+import { useBadgeSystem, getUnlockedBadges } from '../hooks/useBadgeSystem';
+
+// Badge Section Component - Using new 12-badge system with database
+const BadgeSection: React.FC<{
+    userId: number;
+    language: string;
+}> = ({ userId, language }) => {
+    const [tooltipBadge, setTooltipBadge] = useState<string | null>(null);
+    const [unlockedBadgeIds, setUnlockedBadgeIds] = useState<Set<string>>(new Set());
+    const [isLoading, setIsLoading] = useState(true);
+
+    // New state for modal
+    const [showBadgeModal, setShowBadgeModal] = useState(false);
+    const [newlyUnlockedBadges, setNewlyUnlockedBadges] = useState<Badge[]>([]);
+
+    const { checkAllHistoricalBadges } = useBadgeSystem();
+
+    // Fetch unlocked badges from database and check history
+    useEffect(() => {
+        const fetchAndCheckBadges = async () => {
+            try {
+                // 1. Load currently unlocked badges
+                const unlocked = await getUnlockedBadges(userId);
+                const currentIds = new Set(unlocked.map(b => b.id));
+                setUnlockedBadgeIds(currentIds);
+
+                // 2. Check history for retroactive unlocking
+                const newBadges = await checkAllHistoricalBadges(userId);
+
+                if (newBadges.length > 0) {
+                    setNewlyUnlockedBadges(newBadges);
+                    setShowBadgeModal(true);
+
+                    // Update unlocked set
+                    const updatedIds = new Set(currentIds);
+                    newBadges.forEach(b => updatedIds.add(b.id));
+                    setUnlockedBadgeIds(updatedIds);
+                }
+            } catch (error) {
+                console.error('Failed to fetch/check badges:', error);
+            }
+            setIsLoading(false);
+        };
+        fetchAndCheckBadges();
+    }, [userId, checkAllHistoricalBadges]);
+
+    const t = language === 'cn' ? {
+        title: '成就墙',
+    } : {
+        title: 'Achievements',
+    };
+
+    if (isLoading) {
+        return (
+            <motion.div
+                className="bg-white rounded-3xl p-6 shadow-lg"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.55 }}
+            >
+                <h3 className="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
+                    🏅 {t.title}
+                </h3>
+                <div className="flex justify-center py-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-kid-purple border-t-transparent" />
+                </div>
+            </motion.div>
+        );
+    }
+
+    return (
+        <motion.div
+            className="bg-white rounded-3xl p-6 shadow-lg"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.55 }}
+        >
+            {/* Celebration Modal */}
+            {showBadgeModal && (
+                <BadgeUnlockModal
+                    badges={newlyUnlockedBadges}
+                    onClose={() => setShowBadgeModal(false)}
+                    language={language}
+                />
+            )}
+            <h3 className="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
+                🏅 {t.title}
+                <span className="text-sm font-normal text-gray-400">
+                    ({unlockedBadgeIds.size}/{BADGES.length})
+                </span>
+            </h3>
+
+            {/* Responsive Grid: 4 columns on desktop, 3 on mobile */}
+            <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
+                {BADGES.map((badge) => {
+                    const isUnlocked = unlockedBadgeIds.has(badge.id);
+                    const isTooltipVisible = tooltipBadge === badge.id;
+
+                    return (
+                        <div
+                            key={badge.id}
+                            className="relative flex flex-col items-center"
+                            onMouseEnter={() => setTooltipBadge(badge.id)}
+                            onMouseLeave={() => setTooltipBadge(null)}
+                            onClick={() => setTooltipBadge(isTooltipVisible ? null : badge.id)}
+                        >
+                            <motion.div
+                                className={`
+                                    w-14 h-14 rounded-2xl flex items-center justify-center cursor-pointer
+                                    transition-all duration-200 relative overflow-hidden
+                                    ${isUnlocked
+                                        ? 'bg-gradient-to-br from-yellow-100 via-yellow-50 to-orange-100 shadow-md'
+                                        : 'bg-gray-100'
+                                    }
+                                `}
+                                style={{
+                                    filter: isUnlocked ? 'none' : 'grayscale(1)',
+                                    opacity: isUnlocked ? 1 : 0.5,
+                                }}
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.95 }}
+                            >
+                                {badge.icon ? (
+                                    <img src={badge.icon} alt={badge.nameEn} className="w-12 h-12 object-contain" />
+                                ) : (
+                                    <span className="text-2xl">{badge.emoji}</span>
+                                )}
+                                {!isUnlocked && (
+                                    <span className="absolute -bottom-1 -right-1 text-xs">🔒</span>
+                                )}
+                                {isUnlocked && (
+                                    <motion.div
+                                        className="absolute inset-0 rounded-2xl"
+                                        animate={{
+                                            boxShadow: [
+                                                '0 0 0 0 rgba(255, 215, 0, 0)',
+                                                '0 0 8px 2px rgba(255, 215, 0, 0.3)',
+                                                '0 0 0 0 rgba(255, 215, 0, 0)',
+                                            ],
+                                        }}
+                                        transition={{ duration: 2, repeat: Infinity }}
+                                    />
+                                )}
+                            </motion.div>
+
+                            {/* Badge name */}
+                            <span className={`text-[10px] mt-1 text-center truncate w-full ${isUnlocked ? 'text-gray-600' : 'text-gray-400'}`}>
+                                {language === 'cn' ? badge.name : badge.nameEn}
+                            </span>
+
+                            {/* Tooltip */}
+                            <AnimatePresence>
+                                {isTooltipVisible && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 5 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: 5 }}
+                                        className="absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg whitespace-nowrap shadow-lg"
+                                    >
+                                        <div className="font-bold flex items-center gap-1">
+                                            {badge.emoji} {language === 'cn' ? badge.name : badge.nameEn}
+                                        </div>
+                                        <div className="text-gray-300 mt-0.5">
+                                            {isUnlocked ? '✅ ' : '🔒 '}{language === 'cn' ? badge.description : badge.descriptionEn}
+                                        </div>
+                                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-gray-800" />
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    );
+                })}
+            </div>
+        </motion.div>
+    );
+};
+
 // Stat Card Component
 const StatCard: React.FC<{
     icon: React.ReactNode;
@@ -325,6 +531,166 @@ const StatCard: React.FC<{
         <div className="text-xs text-gray-500 mt-1">{label}</div>
     </motion.div>
 );
+
+// Practice Heatmap Component (GitHub-style contribution graph)
+const PracticeHeatmap: React.FC<{
+    heatmapData: { date: string; duration: number }[];
+    language: string;
+}> = ({ heatmapData, language }) => {
+    const [tooltipData, setTooltipData] = useState<{ date: string; duration: number; x: number; y: number } | null>(null);
+
+    const t = language === 'cn' ? {
+        title: '我的坚持',
+        noActivity: '无练习',
+        minutes: '分钟',
+    } : {
+        title: 'My Consistency',
+        noActivity: 'No activity',
+        minutes: 'min',
+    };
+
+    // Generate last 3 months of dates
+    const generateDates = () => {
+        const dates: Date[] = [];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Go back to start of week for alignment
+        const startOffset = today.getDay(); // 0 = Sunday
+        const endDate = new Date(today);
+
+        // Generate ~13 weeks (3 months worth)
+        const weeksToShow = 13;
+        const daysToShow = weeksToShow * 7;
+
+        for (let i = daysToShow - 1 + startOffset; i >= 0; i--) {
+            const date = new Date(today);
+            date.setDate(today.getDate() - i);
+            dates.push(date);
+        }
+        return dates;
+    };
+
+    const dates = generateDates();
+
+    // Create a map for quick lookup
+    const durationMap = new Map<string, number>();
+    heatmapData.forEach(d => durationMap.set(d.date, d.duration));
+
+    // Find max duration for color scaling
+    const maxDuration = Math.max(...heatmapData.map(d => d.duration), 1);
+
+    // Get color intensity based on duration
+    const getColor = (duration: number) => {
+        if (duration === 0) return 'bg-gray-100';
+        const intensity = Math.min(duration / maxDuration, 1);
+        if (intensity < 0.25) return 'bg-green-200';
+        if (intensity < 0.5) return 'bg-green-300';
+        if (intensity < 0.75) return 'bg-green-400';
+        return 'bg-green-500';
+    };
+
+    // Group dates by week
+    const weeks: Date[][] = [];
+    for (let i = 0; i < dates.length; i += 7) {
+        weeks.push(dates.slice(i, i + 7));
+    }
+
+    const weekDays = language === 'cn'
+        ? ['日', '一', '二', '三', '四', '五', '六']
+        : ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+    return (
+        <motion.div
+            className="bg-white rounded-3xl p-6 shadow-lg"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.9 }}
+        >
+            <h3 className="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
+                📅 {t.title}
+            </h3>
+
+            <div className="flex gap-1 overflow-x-auto pb-2">
+                {/* Week day labels */}
+                <div className="flex flex-col gap-1 mr-1">
+                    {weekDays.map((day, idx) => (
+                        <div
+                            key={idx}
+                            className="w-3 h-3 text-[8px] text-gray-400 flex items-center justify-center"
+                        >
+                            {idx % 2 === 1 ? day : ''}
+                        </div>
+                    ))}
+                </div>
+
+                {/* Weeks */}
+                {weeks.map((week, weekIdx) => (
+                    <div key={weekIdx} className="flex flex-col gap-1">
+                        {week.map((date, dayIdx) => {
+                            const dateStr = format(date, 'yyyy-MM-dd');
+                            const duration = durationMap.get(dateStr) || 0;
+                            const colorClass = getColor(duration);
+                            const isToday = format(new Date(), 'yyyy-MM-dd') === dateStr;
+
+                            return (
+                                <div
+                                    key={dayIdx}
+                                    className={`
+                                        w-3 h-3 rounded-sm cursor-pointer transition-transform hover:scale-125
+                                        ${colorClass}
+                                        ${isToday ? 'ring-1 ring-kid-purple' : ''}
+                                    `}
+                                    onMouseEnter={(e) => {
+                                        const rect = e.currentTarget.getBoundingClientRect();
+                                        setTooltipData({
+                                            date: dateStr,
+                                            duration,
+                                            x: rect.left + rect.width / 2,
+                                            y: rect.top
+                                        });
+                                    }}
+                                    onMouseLeave={() => setTooltipData(null)}
+                                />
+                            );
+                        })}
+                    </div>
+                ))}
+            </div>
+
+            {/* Color Legend */}
+            <div className="flex items-center justify-end gap-1 mt-3 text-xs text-gray-400">
+                <span>{t.noActivity}</span>
+                <div className="w-3 h-3 rounded-sm bg-gray-100" />
+                <div className="w-3 h-3 rounded-sm bg-green-200" />
+                <div className="w-3 h-3 rounded-sm bg-green-300" />
+                <div className="w-3 h-3 rounded-sm bg-green-400" />
+                <div className="w-3 h-3 rounded-sm bg-green-500" />
+                <span>More</span>
+            </div>
+
+            {/* Tooltip */}
+            {tooltipData && (
+                <div
+                    className="fixed z-50 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg pointer-events-none"
+                    style={{
+                        left: tooltipData.x,
+                        top: tooltipData.y - 30,
+                        transform: 'translateX(-50%)'
+                    }}
+                >
+                    <div>{format(new Date(tooltipData.date), 'MM/dd')}</div>
+                    <div className="text-gray-300">
+                        {tooltipData.duration > 0
+                            ? `${Math.round(tooltipData.duration / 60)} ${t.minutes}`
+                            : t.noActivity
+                        }
+                    </div>
+                </div>
+            )}
+        </motion.div>
+    );
+};
 
 interface UserProfileProps {
     onBack: () => void;
@@ -347,6 +713,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
 
     // Chart comparison state (default: on)
     const [showComparison, setShowComparison] = useState(true);
+
+    // Hidden users state for toggleable legend
+    const [hiddenUsers, setHiddenUsers] = useState<Set<string>>(new Set());
 
     // Get all users chart data for comparison
     const allUsersChart = useAllUsersChartData(currentUser?.id);
@@ -757,6 +1126,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
                 />
             </div>
 
+            {/* Badge Section - Achievements */}
+            <BadgeSection userId={currentUser.id!} language={language} />
+
             {/* Progress Chart */}
             {(stats.chartData.length > 0 || (showComparison && allUsersChart.chartData.length > 0)) && (
                 <motion.div
@@ -807,7 +1179,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
                                         axisLine={false}
                                         tickLine={false}
                                         tick={{ fontSize: 12, fill: '#9CA3AF' }}
-                                        domain={['dataMin - 5', 'dataMax + 5']}
+                                        domain={[0, 'auto']}
                                     />
                                     <Tooltip
                                         contentStyle={{
@@ -819,29 +1191,21 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
                                         labelFormatter={(label) => label}
                                         formatter={(value: number, name: string) => [`${value} WPM`, name]}
                                     />
-                                    <Legend
-                                        wrapperStyle={{ paddingTop: 10 }}
-                                        formatter={(value) => {
-                                            const userInfo = allUsersChart.userInfos.find(u => u.name === value);
-                                            return (
-                                                <span className="text-sm">
-                                                    {userInfo?.avatar} {value}
-                                                </span>
-                                            );
-                                        }}
-                                    />
-                                    {allUsersChart.userInfos.map((user) => (
-                                        <Line
-                                            key={user.name}
-                                            type="monotone"
-                                            dataKey={user.name}
-                                            stroke={user.color}
-                                            strokeWidth={user.name === currentUser?.name ? 3 : 2}
-                                            dot={{ fill: user.color, strokeWidth: 2, r: user.name === currentUser?.name ? 4 : 3 }}
-                                            activeDot={{ r: 6, fill: user.color }}
-                                            connectNulls
-                                        />
-                                    ))}
+                                    {/* Legend removed - using custom bottom legend */}
+                                    {allUsersChart.userInfos
+                                        .filter(user => !hiddenUsers.has(user.name))
+                                        .map((user) => (
+                                            <Line
+                                                key={user.name}
+                                                type="monotone"
+                                                dataKey={user.name}
+                                                stroke={user.color}
+                                                strokeWidth={user.name === currentUser?.name ? 3 : 2}
+                                                dot={{ fill: user.color, strokeWidth: 2, r: user.name === currentUser?.name ? 4 : 3 }}
+                                                activeDot={{ r: 6, fill: user.color }}
+                                                connectNulls
+                                            />
+                                        ))}
                                 </LineChart>
                             ) : (
                                 // Single user chart
@@ -857,7 +1221,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
                                         axisLine={false}
                                         tickLine={false}
                                         tick={{ fontSize: 12, fill: '#9CA3AF' }}
-                                        domain={['dataMin - 5', 'dataMax + 5']}
+                                        domain={[0, 'auto']}
                                     />
                                     <Tooltip
                                         contentStyle={{
@@ -885,22 +1249,38 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
                     {/* User Legend (when comparison is on) */}
                     {showComparison && allUsersChart.userInfos.length > 1 && (
                         <div className="mt-4 flex flex-wrap gap-3 justify-center">
-                            {allUsersChart.userInfos.map(user => (
-                                <div
-                                    key={user.name}
-                                    className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${user.name === currentUser?.name
-                                        ? 'bg-purple-100 font-medium'
-                                        : 'bg-gray-100'
-                                        }`}
-                                >
-                                    <div
-                                        className="w-3 h-3 rounded-full"
-                                        style={{ backgroundColor: user.color }}
-                                    />
-                                    <span>{user.avatar}</span>
-                                    <span className="text-gray-700">{user.name}</span>
-                                </div>
-                            ))}
+                            {allUsersChart.userInfos.map(user => {
+                                const isHidden = hiddenUsers.has(user.name);
+                                return (
+                                    <button
+                                        key={user.name}
+                                        onClick={() => {
+                                            setHiddenUsers(prev => {
+                                                const newSet = new Set(prev);
+                                                if (newSet.has(user.name)) {
+                                                    newSet.delete(user.name);
+                                                } else {
+                                                    newSet.add(user.name);
+                                                }
+                                                return newSet;
+                                            });
+                                        }}
+                                        className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm transition-all cursor-pointer hover:scale-105 ${isHidden
+                                            ? 'bg-gray-100 opacity-50'
+                                            : user.name === currentUser?.name
+                                                ? 'bg-purple-100 font-medium'
+                                                : 'bg-gray-100'
+                                            }`}
+                                    >
+                                        <div
+                                            className={`w-3 h-3 rounded-full ${isHidden ? 'opacity-30' : ''}`}
+                                            style={{ backgroundColor: user.color }}
+                                        />
+                                        <span className={isHidden ? 'line-through' : ''}>{user.avatar}</span>
+                                        <span className={`text-gray-700 ${isHidden ? 'line-through' : ''}`}>{user.name}</span>
+                                    </button>
+                                );
+                            })}
                         </div>
                     )}
                 </motion.div>
@@ -974,6 +1354,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
                     <p className="text-gray-500">{t.noData}</p>
                 </motion.div>
             )}
+
+            {/* Practice Heatmap */}
+            <PracticeHeatmap heatmapData={stats.heatmapData} language={language} />
         </div>
     );
 };
