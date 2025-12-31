@@ -109,7 +109,22 @@ export default defineConfig(({ mode }) => {
                   statuses: [0, 200]
                 }
               }
-            }
+            },
+            // Cache local audio files
+            {
+              urlPattern: ({ url }) => url.pathname.startsWith('/audio/'),
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'audio-cache',
+                expiration: {
+                  maxEntries: 1000,
+                  maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+                },
+                cacheableResponse: {
+                  statuses: [0, 200]
+                }
+              }
+            },
           ]
         }
       })
