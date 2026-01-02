@@ -60,6 +60,11 @@ export default defineConfig(({ mode }) => {
 
         // Workbox configuration for runtime caching
         workbox: {
+          // Force new service worker to take control immediately
+          skipWaiting: true,
+          clientsClaim: true,
+          cleanupOutdatedCaches: true,
+
           // Glob patterns to cache on install
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
 
