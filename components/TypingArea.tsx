@@ -8,7 +8,7 @@ import { useBadgeSystem, SessionResult } from '../hooks/useBadgeSystem';
 import { Badge } from '../data/badges';
 import { BadgeUnlockModal } from './BadgeUnlockModal';
 import { TRANSLATIONS } from '../i18n';
-import { Star, RotateCcw, Menu, ArrowRight, Zap, Target, Flame, AlertCircle } from 'lucide-react';
+import { Star, RotateCcw, Menu, ArrowRight, Zap, Target, Flame, AlertCircle, Volume2, VolumeX } from 'lucide-react';
 
 // Animated counter hook
 const useCountUp = (end: number, duration: number = 1000) => {
@@ -88,7 +88,9 @@ export const TypingArea: React.FC = () => {
     availableLevels,
     language,
     calculateStats,
-    practiceResult
+    practiceResult,
+    ttsEnabled,
+    setTtsEnabled
   } = useGameStore();
 
   const { saveRecord, currentUser } = useUserStore();
@@ -468,6 +470,18 @@ export const TypingArea: React.FC = () => {
       <div className="absolute top-4 right-6 text-sm font-bold text-gray-300">
         {current} / {total}
       </div>
+
+      {/* TTS Toggle Switch */}
+      <button
+        onClick={() => setTtsEnabled(!ttsEnabled)}
+        className={`
+          absolute top-3 left-6 p-2 rounded-full transition-all duration-200
+          ${ttsEnabled ? 'text-kid-blue bg-blue-50 hover:bg-blue-100' : 'text-gray-300 hover:text-gray-400 hover:bg-gray-100'}
+        `}
+        title={ttsEnabled ? "Mute TTS" : "Enable TTS"}
+      >
+        {ttsEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
+      </button>
 
       {/* --- ENGLISH RENDERER --- */}
       {isEnglishMode && (() => {
