@@ -1,6 +1,6 @@
 #!/bin/bash
 # Tappy 的镜像名称及 GCP 项目 ID
-IMAGE_NAME="gcr.io/xxyhelloword/github.com/lepfinder/Tappy"
+IMAGE_NAME="gcr.io/xxyhelloword/github.com/lepfinder/tappy"
 KEEP_COUNT=3
 
 echo "Fetching all Tappy image digests sorted by timestamp (JSON)..."

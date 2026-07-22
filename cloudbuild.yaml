@@ -3,7 +3,7 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: [
       'build',
-      '-t', 'gcr.io/xxyhelloword/github.com/lepfinder/Tappy:$COMMIT_SHA',
+      '-t', 'gcr.io/xxyhelloword/github.com/lepfinder/tappy:$COMMIT_SHA',
       '-f', 'Dockerfile',
       '.'
     ]
@@ -11,7 +11,7 @@ steps:
   # 2. 推送镜像到镜像仓库
   - name: 'gcr.io/cloud-builders/docker'
     args: [
-      'push', 'gcr.io/xxyhelloword/github.com/lepfinder/Tappy:$COMMIT_SHA'
+      'push', 'gcr.io/xxyhelloword/github.com/lepfinder/tappy:$COMMIT_SHA'
     ]
 
   # 3. 部署镜像到 Cloud Run 上的 tappy 服务
@@ -19,7 +19,7 @@ steps:
     entrypoint: 'gcloud'
     args: [
       'run', 'deploy', 'tappy',
-      '--image', 'gcr.io/xxyhelloword/github.com/lepfinder/Tappy:$COMMIT_SHA',
+      '--image', 'gcr.io/xxyhelloword/github.com/lepfinder/tappy:$COMMIT_SHA',
       '--region', 'us-west1',
       '--port', '8080',
       '--project', 'xxyhelloword'
@@ -31,7 +31,7 @@ steps:
     args: ['./scripts/cleanup-images.sh']
 
 images:
-  - 'gcr.io/xxyhelloword/github.com/lepfinder/Tappy:$COMMIT_SHA'
+  - 'gcr.io/xxyhelloword/github.com/lepfinder/tappy:$COMMIT_SHA'
 
 options:
   logging: CLOUD_LOGGING_ONLY
