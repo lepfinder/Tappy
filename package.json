@@ -11,6 +11,7 @@
     "generate-phrases": "python3 scripts/generate-phrases.py"
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
     "date-fns": "^4.1.0",
     "dexie": "^4.2.1",
     "framer-motion": "^12.23.26",

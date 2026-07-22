@@ -1,0 +1,38 @@
+steps:
+  # 1. 构建 Docker 镜像
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build',
+      '-t', 'gcr.io/xxyhelloword/github.com/lepfinder/Tappy:$COMMIT_SHA',
+      '-f', 'Dockerfile',
+      '.'
+    ]
+
+  # 2. 推送镜像到镜像仓库
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'push', 'gcr.io/xxyhelloword/github.com/lepfinder/Tappy:$COMMIT_SHA'
+    ]
+
+  # 3. 部署镜像到 Cloud Run 上的 tappy 服务
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args: [
+      'run', 'deploy', 'tappy',
+      '--image', 'gcr.io/xxyhelloword/github.com/lepfinder/Tappy:$COMMIT_SHA',
+      '--region', 'us-west1',
+      '--port', '8080',
+      '--project', 'xxyhelloword'
+    ]
+
+  # 4. 自动清理旧镜像（保留最新 3 个版本）
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args: ['./scripts/cleanup-images.sh']
+
+images:
+  - 'gcr.io/xxyhelloword/github.com/lepfinder/Tappy:$COMMIT_SHA'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  substitutionOption: ALLOW_LOOSE
