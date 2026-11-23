@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
     server: {
-      port: 3000,
+      port: 3020,
       host: '0.0.0.0',
     },
     preview: {
@@ -19,16 +19,15 @@ export default defineConfig(({ mode }) => {
         // Auto-update when new version is available
         registerType: 'autoUpdate',
 
-        // Include assets to be cached
+        // 仅预缓存核心图标与界面资源，音频走下方 CacheFirst 按需缓存，避免安装阶段狂下 2800 个 mp3
         includeAssets: [
           'favicon.ico',
           'apple-touch-icon.png',
           'pwa-192x192.png',
           'pwa-512x512.png',
-          '**/*.mp3',
-          '**/*.wav',
-          '**/*.png',
-          '**/*.svg'
+          'images/bear_logo.webp',
+          'images/woodland/*.webp',
+          'icons/fluent3d/*.webp'
         ],
 
         // Manifest configuration (how the app appears when installed)
@@ -69,7 +68,7 @@ export default defineConfig(({ mode }) => {
           cleanupOutdatedCaches: true,
 
           // Glob patterns to cache on install
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+          globPatterns: ['**/*.{js,css,html,ico,webp,svg,woff,woff2}'],
 
           // Runtime caching strategies for external resources
           runtimeCaching: [
@@ -137,6 +136,29 @@ export default defineConfig(({ mode }) => {
         }
       })
     ],
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
+              return 'vendor-charts';
+            }
+            if (id.includes('node_modules/framer-motion')) {
+              return 'vendor-motion';
+            }
+            if (id.includes('node_modules/lucide-react') || id.includes('node_modules/@phosphor-icons')) {
+              return 'vendor-icons';
+            }
+            if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+              return 'vendor-react';
+            }
+            if (id.includes('/data/cn_poems') || id.includes('/data/cn_essays')) {
+              return 'data-cn-curriculum';
+            }
+          }
+        }
+      }
+    },
     define: {
       'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)

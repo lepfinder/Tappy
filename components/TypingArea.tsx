@@ -8,7 +8,7 @@ import { useBadgeSystem, SessionResult } from '../hooks/useBadgeSystem';
 import { Badge } from '../data/badges';
 import { BadgeUnlockModal } from './BadgeUnlockModal';
 import { TRANSLATIONS } from '../i18n';
-import { Star, RotateCcw, Menu, ArrowRight, Zap, Target, Flame, AlertCircle, Volume2, VolumeX } from 'lucide-react';
+import { Star, RotateCcw, Menu, ArrowRight, Zap, Target, Flame, AlertCircle, Volume2, VolumeX, Keyboard, Eye, Headphones } from 'lucide-react';
 
 // Animated counter hook
 const useCountUp = (end: number, duration: number = 1000) => {
@@ -81,16 +81,23 @@ export const TypingArea: React.FC = () => {
     currentSyllableIndex,
     selectedMode,
     lastInputError,
+    lastWrongKey,
+    combo,
+    mistakeKeys: rawMistakeKeys,
     view,
     restartLevel,
     exitGame,
     nextLevel,
+    startWeakKeyDrill,
     availableLevels,
     language,
     calculateStats,
     practiceResult,
     ttsEnabled,
-    setTtsEnabled
+    setTtsEnabled,
+    dictationMode,
+    imeWarning,
+    capsLockOn
   } = useGameStore();
 
   const { saveRecord, currentUser } = useUserStore();
@@ -207,6 +214,37 @@ export const TypingArea: React.FC = () => {
   const [hotkeyEnabled, setHotkeyEnabled] = useState(false);
   const resultShownTimeRef = useRef<number>(0);
 
+  // 听写模式「偷看 1.2 秒」状态（按 Tab 或点击按钮触发）
+  const [peekVisible, setPeekVisible] = useState(false);
+  const peekTimerRef = useRef<number | null>(null);
+  const isDictationActive = dictationMode && selectedMode === 'EN_WORDS';
+
+  const triggerPeek = () => {
+    setPeekVisible(true);
+    if (peekTimerRef.current) window.clearTimeout(peekTimerRef.current);
+    peekTimerRef.current = window.setTimeout(() => setPeekVisible(false), 1200);
+  };
+
+  useEffect(() => {
+    setPeekVisible(false);
+    if (peekTimerRef.current) {
+      window.clearTimeout(peekTimerRef.current);
+      peekTimerRef.current = null;
+    }
+  }, [currentChallengeIndex, currentLevel?.id, dictationMode]);
+
+  useEffect(() => {
+    if (view !== 'GAME' || !isDictationActive) return;
+    const onTabPeek = (e: KeyboardEvent) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        triggerPeek();
+      }
+    };
+    window.addEventListener('keydown', onTabPeek);
+    return () => window.removeEventListener('keydown', onTabPeek);
+  }, [view, isDictationActive]);
+
   // Enable hotkeys after 1 second delay when entering result view
   useEffect(() => {
     if (view === 'RESULT') {
@@ -247,6 +285,13 @@ export const TypingArea: React.FC = () => {
         return;
       }
 
+      // D → Drill Weak Keys (when mistakes exist)
+      if (key === 'd' && stats && stats.mistakeKeys.length > 0) {
+        e.preventDefault();
+        startWeakKeyDrill(stats.mistakeKeys);
+        return;
+      }
+
       // Escape → Back to List
       if (e.key === 'Escape') {
         e.preventDefault();
@@ -257,7 +302,7 @@ export const TypingArea: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [view, hotkeyEnabled, currentLevel, availableLevels, nextLevel, restartLevel, exitGame]);
+  }, [view, hotkeyEnabled, currentLevel, availableLevels, nextLevel, restartLevel, exitGame, stats, startWeakKeyDrill]);
 
   if (view === 'RESULT') {
     const hasNext = currentLevel && availableLevels.findIndex(l => l.id === currentLevel.id) < availableLevels.length - 1;
@@ -277,13 +322,13 @@ export const TypingArea: React.FC = () => {
 
     return (
       <motion.div
-        className="flex flex-col items-center justify-center py-6"
-        initial={{ opacity: 0, scale: 0.8 }}
+        className="flex flex-col items-center justify-center py-3 sm:py-5"
+        initial={{ opacity: 0, scale: 0.92 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, type: "spring", stiffness: 100 }}
+        transition={{ duration: 0.45, type: "spring", stiffness: 120 }}
       >
         {/* Stars Section with staggered animation */}
-        <div className="flex justify-center gap-3 mb-4 h-14">
+        <div className="flex justify-center gap-3 mb-3 h-14">
           {[1, 2, 3].map((starNum, idx) => (
             <AnimatePresence key={starNum}>
               {showStars[idx] ? (
@@ -330,8 +375,8 @@ export const TypingArea: React.FC = () => {
           {starMessage}
         </motion.p>
 
-        {/* Stats Grid - 2x2 with staggered animations */}
-        <div className="grid grid-cols-2 gap-4 w-full max-w-sm mb-8">
+        {/* Stats Grid - 桌面端紧凑一行 4 列，移动端 2x2 */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-2xl mb-7">
           <AnimatedStatBox
             label={t.speed}
             value={displayStats.wpm}
@@ -370,19 +415,27 @@ export const TypingArea: React.FC = () => {
               <AlertCircle size={20} />
             </motion.div>
             <span className="text-xs text-gray-500">{t.needPractice}</span>
-            <div className="flex gap-1.5 mt-1">
+            <div className="flex flex-wrap justify-center gap-1.5 mt-1">
               {displayStats.mistakeKeys.length > 0 ? (
-                displayStats.mistakeKeys.map((k, idx) => (
-                  <motion.span
-                    key={k}
-                    className="font-mono font-bold text-lg text-purple-600 uppercase bg-purple-100 px-2 py-0.5 rounded"
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 1.2 + idx * 0.1, type: "spring" }}
-                  >
-                    {k}
-                  </motion.span>
-                ))
+                displayStats.mistakeKeys.map((k, idx) => {
+                  const count = rawMistakeKeys[k] || rawMistakeKeys[k.toLowerCase()] || 0;
+                  return (
+                    <motion.span
+                      key={k}
+                      className="font-mono font-bold text-sm text-purple-700 uppercase bg-purple-100 px-2 py-0.5 rounded-lg inline-flex items-baseline gap-0.5"
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 1.2 + idx * 0.1, type: "spring" }}
+                    >
+                      <span>{k === ' ' ? '␣' : k}</span>
+                      {count > 0 && (
+                        <span className="text-[10px] font-extrabold text-purple-500 lowercase">
+                          ×{count}
+                        </span>
+                      )}
+                    </motion.span>
+                  );
+                })
               ) : (
                 <motion.span
                   className="text-green-500 font-bold text-sm"
@@ -399,32 +452,42 @@ export const TypingArea: React.FC = () => {
 
         {/* Action Buttons with staggered fade-in and hotkey hints */}
         <motion.div
-          className="flex gap-4"
+          className="flex flex-wrap items-center justify-center gap-3"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.2, duration: 0.4 }}
         >
           <button
             onClick={restartLevel}
-            className="px-6 py-2 bg-gray-200 rounded-full font-bold text-gray-600 flex items-center gap-2 hover:bg-gray-300 transition-colors hover:scale-105 active:scale-95"
+            className="px-5 py-2.5 bg-gray-100 rounded-full font-bold text-gray-600 flex items-center gap-2 hover:bg-gray-200 transition-colors hover:scale-105 active:scale-95 cursor-pointer"
           >
-            <RotateCcw size={18} /> {t.replay}
-            <span className="text-xs opacity-50 ml-1">[R]</span>
+            <RotateCcw size={17} /> {t.replay}
+            <span className="text-xs opacity-50 ml-0.5">[R]</span>
           </button>
           <button
             onClick={exitGame}
-            className="px-6 py-2 bg-gray-200 rounded-full font-bold text-gray-600 flex items-center gap-2 hover:bg-gray-300 transition-colors hover:scale-105 active:scale-95"
+            className="px-5 py-2.5 bg-gray-100 rounded-full font-bold text-gray-600 flex items-center gap-2 hover:bg-gray-200 transition-colors hover:scale-105 active:scale-95 cursor-pointer"
           >
-            <Menu size={18} /> {t.levels}
-            <span className="text-xs opacity-50 ml-1">[Esc]</span>
+            <Menu size={17} /> {t.levels}
+            <span className="text-xs opacity-50 ml-0.5">[Esc]</span>
           </button>
+          {displayStats.mistakeKeys.length > 0 && (
+            <button
+              onClick={() => startWeakKeyDrill(displayStats.mistakeKeys)}
+              className="px-5 py-2.5 bg-purple-100 text-purple-700 rounded-full font-bold flex items-center gap-1.5 hover:bg-purple-200 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+            >
+              <Zap size={17} />
+              {language === 'cn' ? '特训错键' : 'Drill Weak Keys'}
+              <span className="text-xs opacity-55 ml-0.5">[D]</span>
+            </button>
+          )}
           {hasNext && (
             <button
               onClick={nextLevel}
-              className="px-6 py-2 bg-kid-blue text-white rounded-full font-bold flex items-center gap-2 hover:bg-blue-400 shadow-lg transition-all hover:scale-105 active:scale-95"
+              className="px-6 py-2.5 bg-kid-blue text-white rounded-full font-bold flex items-center gap-2 hover:bg-blue-400 shadow-lg transition-all hover:scale-105 active:scale-95 cursor-pointer"
             >
-              {t.next} <ArrowRight size={18} />
-              <span className="text-xs opacity-60 ml-1">⏎</span>
+              {t.next} <ArrowRight size={17} />
+              <span className="text-xs opacity-60 ml-0.5">⏎</span>
             </button>
           )}
         </motion.div>
@@ -458,17 +521,37 @@ export const TypingArea: React.FC = () => {
 
   return (
     <>
-      {/* Progress Bar */}
-      <div className="absolute top-0 left-0 w-full h-2 bg-gray-100">
+      {/* 顶部柔和森林绿进度丝带 */}
+      <div className="absolute top-0 left-0 w-full h-2.5 bg-emerald-50 overflow-hidden">
         <div
-          className="h-full bg-kid-green transition-all duration-500 ease-out"
-          style={{ width: `${progressPercent}%` }}
+          className="h-full rounded-r-full transition-all duration-500 ease-out"
+          style={{
+            width: `${Math.max(4, progressPercent)}%`,
+            background: 'linear-gradient(90deg, #34D399 0%, #1E7F5C 100%)'
+          }}
         />
       </div>
 
-      {/* Progress Text */}
-      <div className="absolute top-4 right-6 text-sm font-bold text-gray-300">
-        {current} / {total}
+      {/* 右上角：连击微光胶囊 + 清晰进度计数 */}
+      <div className="absolute top-4 right-5 flex items-center gap-2">
+        {combo >= 5 && (
+          <div
+            className={`px-2.5 py-0.5 rounded-full text-xs font-black flex items-center gap-1 shadow-xs animate-pop ${
+              combo >= 15
+                ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+            }`}
+          >
+            <Flame
+              size={13}
+              className={combo >= 15 ? 'fill-amber-500 text-amber-600' : 'fill-emerald-500 text-emerald-600'}
+            />
+            {combo}x
+          </div>
+        )}
+        <div className="px-2.5 py-0.5 rounded-full bg-stone-100/90 text-xs sm:text-sm font-extrabold text-[#7A6A5F] tabular-nums">
+          {current} / {total}
+        </div>
       </div>
 
       {/* TTS Toggle Switch */}
@@ -483,6 +566,22 @@ export const TypingArea: React.FC = () => {
         {ttsEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
       </button>
 
+      {/* 中文输入法 IME 与 CapsLock 实时友好提示条 */}
+      {(imeWarning || capsLockOn) && (
+        <div className="mt-6 mx-auto max-w-xl px-4 py-2 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 animate-fade-in">
+          <Keyboard size={16} className="shrink-0" />
+          <span>
+            {imeWarning
+              ? language === 'cn'
+                ? '检测到中文输入法开启，请按一下 Shift 切回英文键盘再打字哦！'
+                : 'Chinese IME detected — press Shift to switch to English input!'
+              : language === 'cn'
+                ? '提示：大写锁定（Caps Lock）已开启，建议关闭。'
+                : 'Caps Lock is on.'}
+          </span>
+        </div>
+      )}
+
       {/* --- ENGLISH RENDERER --- */}
       {isEnglishMode && (() => {
         const chars = currentItem.display.split('');
@@ -492,23 +591,59 @@ export const TypingArea: React.FC = () => {
 
         return (
           <div className="flex flex-col items-center justify-center min-h-64 py-8 px-4">
+            {/* 听写模式轻标识 + 重听 + 偷看按钮 */}
+            {isDictationActive && (
+              <div className="flex items-center gap-2 mb-3">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-violet-100 text-violet-700 text-xs font-extrabold">
+                  <Headphones size={12} />
+                  {language === 'cn' ? '听写模式' : 'Dictation'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => speak(currentItem.display, 'en-US', true)}
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold cursor-pointer transition-colors"
+                >
+                  <Volume2 size={12} />
+                  {language === 'cn' ? '再读一遍' : 'Replay'}
+                </button>
+                <button
+                  type="button"
+                  onClick={triggerPeek}
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold cursor-pointer transition-colors"
+                >
+                  <Eye size={12} />
+                  {language === 'cn' ? '偷看 1 秒 [Tab]' : 'Peek [Tab]'}
+                </button>
+              </div>
+            )}
+
             {/* Visual cue for meaning */}
             {currentItem.translation && (
-              <div className={`text-gray-400 font-cartoon mb-4 animate-pulse ${isEssay ? 'text-lg md:text-xl' : 'text-2xl'}`}>
+              <div
+                className={`font-cartoon mb-4 ${
+                  isDictationActive
+                    ? 'text-2xl md:text-3xl font-black text-[#2B211B]'
+                    : `text-gray-400 animate-pulse ${isEssay ? 'text-lg md:text-xl' : 'text-2xl'}`
+                }`}
+              >
                 {currentItem.translation}
               </div>
             )}
 
             <div className={`
-              flex flex-wrap justify-center gap-1 font-mono font-bold transition-transform 
+              flex flex-wrap justify-center gap-1.5 font-mono font-bold transition-transform 
               ${fontSizeClass}
               ${lastInputError ? 'animate-shake text-red-500' : ''}
             `}>
               {chars.map((char, idx) => {
+                const isTyped = idx < typedHistory.length;
+                const isCursor = idx === typedHistory.length;
+                const hideInDictation = isDictationActive && !isTyped && !peekVisible;
+
                 let statusClass = 'text-gray-300'; // Untyped
-                if (idx < typedHistory.length) {
+                if (isTyped) {
                   statusClass = 'text-kid-green'; // Typed Correct
-                } else if (idx === typedHistory.length) {
+                } else if (isCursor) {
                   statusClass = 'text-kid-blue border-b-4 border-kid-blue'; // Current cursor
                 }
 
@@ -521,8 +656,24 @@ export const TypingArea: React.FC = () => {
                   );
                 }
 
+                if (hideInDictation) {
+                  return (
+                    <span
+                      key={idx}
+                      className={`inline-flex items-end justify-center w-8 md:w-10 border-b-4 transition-colors ${
+                        isCursor ? 'border-violet-500 text-violet-300' : 'border-stone-300 text-transparent'
+                      }`}
+                    >
+                      ·
+                    </span>
+                  );
+                }
+
                 return (
-                  <span key={idx} className={statusClass}>
+                  <span
+                    key={idx}
+                    className={`${statusClass} ${isDictationActive && peekVisible && !isTyped ? 'text-violet-400' : ''}`}
+                  >
                     {char}
                   </span>
                 );
@@ -591,6 +742,18 @@ export const TypingArea: React.FC = () => {
           </div>
         );
       })()}
+
+      {/* 温和错键纠偏提示（预留固定高度避免页面跳动） */}
+      <div className="h-7 -mt-4 mb-2 flex items-center justify-center pointer-events-none">
+        {lastWrongKey && (
+          <div className="px-3 py-0.5 rounded-full bg-rose-50 border border-rose-200/80 text-rose-600 text-xs font-bold flex items-center gap-1.5 animate-fade-in">
+            <span>{language === 'cn' ? '刚才按成了' : 'Pressed'}</span>
+            <kbd className="font-mono font-black uppercase bg-white px-1.5 py-0.2 rounded border border-rose-200 text-rose-700">
+              {lastWrongKey === ' ' ? 'SPACE' : lastWrongKey}
+            </kbd>
+          </div>
+        )}
+      </div>
     </>
   );
 };

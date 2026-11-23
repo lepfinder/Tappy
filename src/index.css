@@ -1,164 +1,199 @@
 @import "tailwindcss";
 
 @theme {
-    /* Font families */
-    --font-sans: 'Nunito', sans-serif;
-    --font-cartoon: 'Zcool KuaiLe', cursive, sans-serif;
+  /* 字体栈：优先系统圆润粗体，确保国内离线环境下中文大标题依然圆润饱满 */
+  --font-sans: 'Nunito', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', ui-rounded, sans-serif;
+  --font-cartoon: 'STYuanti-SC-Bold', 'Yuanti SC', 'Hiragino Maru Gothic ProN', 'Zcool KuaiLe', 'Nunito', 'PingFang SC', ui-rounded, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
-    /* Kid-friendly colors */
-    --color-kid-yellow: #FFD93D;
-    --color-kid-red: #FF6B6B;
-    --color-kid-blue: #4D96FF;
-    --color-kid-green: #6BCB77;
-    --color-kid-purple: #9B59B6;
-    --color-kid-bg: #F7F9FC;
+  /* 奶油森林主色体系 */
+  --color-kid-yellow: #FFD93D;
+  --color-kid-red: #FF6B6B;
+  --color-kid-blue: #1E7F5C;
+  --color-kid-green: #2E9E6E;
+  --color-kid-purple: #E88B28;
+  --color-kid-bg: #FFFBF2;
 
-    /* Card colors matching design */
-    --color-card-yellow: #FFD93D;
-    --color-card-blue: #4D96FF;
-    --color-card-purple: #B794F6;
-    --color-card-green: #6BCB77;
-    --color-card-coral: #FF8B8B;
-    --color-card-teal: #4DD4AC;
-    --color-card-orange: #FFB366;
-    --color-card-mint: #A3E4D7;
-
-    /* Custom animations */
-    --animate-bounce-short: bounce 0.5s infinite;
-    --animate-jump-once: jump 0.5s ease-in-out 1;
-    --animate-pulse-fast: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    --animate-shake: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
-    --animate-slide-up: slideUp 0.5s ease-out forwards;
-    --animate-fade-in: fadeIn 0.5s ease-out forwards;
-    --animate-float: float 3s ease-in-out infinite;
-    --animate-twinkle: twinkle 2s ease-in-out infinite;
-    --animate-blink: blink 1s step-end infinite;
+  --animate-jump-once: jump 0.45s cubic-bezier(0.22, 1, 0.36, 1) 1;
+  --animate-pulse-fast: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-shake: shake 0.38s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  --animate-slide-up: slideUp 0.36s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  --animate-fade-in: fadeIn 0.32s ease-out forwards;
+  --animate-float: float 3.2s ease-in-out infinite;
+  --animate-twinkle: twinkle 2.2s ease-in-out infinite;
+  --animate-blink: blink 1s step-end infinite;
 }
 
-/* Custom keyframes */
 @keyframes shake {
-
-    10%,
-    90% {
-        transform: translate3d(-1px, 0, 0);
-    }
-
-    20%,
-    80% {
-        transform: translate3d(2px, 0, 0);
-    }
-
-    30%,
-    50%,
-    70% {
-        transform: translate3d(-4px, 0, 0);
-    }
-
-    40%,
-    60% {
-        transform: translate3d(4px, 0, 0);
-    }
+  15%, 85% { transform: translate3d(-2px, 0, 0); }
+  30%, 70% { transform: translate3d(3px, 0, 0); }
+  45%, 60% { transform: translate3d(-4px, 0, 0); }
 }
 
 @keyframes jump {
-
-    0%,
-    100% {
-        transform: translateY(0);
-    }
-
-    50% {
-        transform: translateY(-20px);
-    }
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
 }
 
 @keyframes slideUp {
-    0% {
-        transform: translateY(20px);
-        opacity: 0;
-    }
-
-    100% {
-        transform: translateY(0);
-        opacity: 1;
-    }
+  0% { transform: translateY(14px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
 }
 
 @keyframes fadeIn {
-    0% {
-        opacity: 0;
-    }
-
-    100% {
-        opacity: 1;
-    }
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }
 
 @keyframes float {
-
-    0%,
-    100% {
-        transform: translateY(0) rotate(0deg);
-    }
-
-    50% {
-        transform: translateY(-10px) rotate(5deg);
-    }
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-7px) rotate(3deg); }
 }
 
 @keyframes twinkle {
-
-    0%,
-    100% {
-        opacity: 0.3;
-        transform: scale(0.8);
-    }
-
-    50% {
-        opacity: 1;
-        transform: scale(1.2);
-    }
+  0%, 100% { opacity: 0.4; transform: scale(0.88); }
+  50% { opacity: 1; transform: scale(1.15); }
 }
 
 @keyframes blink {
-
-    0%,
-    100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0;
-    }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
-/* Gradient background matching design */
+/* 渐进增强 oklab 渐变插值，避免 sRGB 中间色发灰 */
+:root {
+  --in-oklab: ;
+  --brand-primary: #1E7F5C;
+  --brand-title: #1E7F5C;
+  --passport-bg: linear-gradient(135deg, #238662 0%, #166046 100%);
+  --passport-shadow: 0 16px 32px -12px rgba(22, 96, 70, 0.42), 0 4px 10px -4px rgba(22, 96, 70, 0.2);
+}
+
+@supports (background: linear-gradient(in oklab, white, black)) {
+  :root {
+    --in-oklab: in oklab;
+    --passport-bg: linear-gradient(135deg in oklab, #238662 0%, #166046 100%);
+  }
+}
+
+/* 奶油森林护眼画纸底 + 细腻纯 CSS 微点纹 */
 body {
-    background: linear-gradient(135deg, #fce4ec 0%, #e3f2fd 50%, #f3e5f5 100%);
-    min-height: 100vh;
+  background-color: #FFFBF2;
+  background-image:
+    radial-gradient(circle, rgba(186, 160, 126, 0.22) 1.1px, transparent 1.2px),
+    radial-gradient(ellipse at 50% 0%, rgba(255, 232, 189, 0.48) 0%, transparent 62%);
+  background-size: 26px 26px, 100% 100%;
+  min-height: 100vh;
 }
 
-/* Floating decorative elements */
-.star-decoration {
-    position: fixed;
-    pointer-events: none;
+/* 成长页深森翡翠护照名片 */
+.tappy-passport {
+  background: var(--passport-bg);
+  box-shadow: var(--passport-shadow);
+}
+
+/* 首页 8 张绘本蜡笔柔彩卡片（多层柔影 + WCAG 4.5:1 深可可墨水字色） */
+.tappy-home-card {
+  border: 1.5px solid rgba(255, 255, 255, 0.78);
+  box-shadow: 0 2px 6px rgba(44, 34, 30, 0.05), 0 12px 24px -10px rgba(44, 34, 30, 0.14);
+}
+
+.tappy-home-card:hover {
+  box-shadow: 0 6px 14px rgba(44, 34, 30, 0.08), 0 20px 32px -12px rgba(44, 34, 30, 0.18);
+}
+
+.tappy-home-card[data-mode="EN_LETTERS"] {
+  background: linear-gradient(180deg var(--in-oklab), #FFE78A 0%, #FFD65A 100%);
+}
+.tappy-home-card[data-mode="EN_WORDS"] {
+  background: linear-gradient(180deg var(--in-oklab), #A5D4FF 0%, #7DBBFC 100%);
+}
+.tappy-home-card[data-mode="EN_ESSAYS"] {
+  background: linear-gradient(180deg var(--in-oklab), #DAC4FF 0%, #C2A3FA 100%);
+}
+.tappy-home-card[data-mode="CN_PINYIN"] {
+  background: linear-gradient(180deg var(--in-oklab), #9EE9B1 0%, #77DC92 100%);
+}
+.tappy-home-card[data-mode="CN_SENTENCES"] {
+  background: linear-gradient(180deg var(--in-oklab), #FFB5B2 0%, #FA9592 100%);
+}
+.tappy-home-card[data-mode="CN_ESSAYS"] {
+  background: linear-gradient(180deg var(--in-oklab), #8CEADB 0%, #5EDCC7 100%);
+}
+.tappy-home-card[data-mode="CN_POEMS"] {
+  background: linear-gradient(180deg var(--in-oklab), #FFD08F 0%, #FBB560 100%);
+}
+.tappy-home-card[data-mode="RACE_100M"] {
+  background: linear-gradient(180deg var(--in-oklab), #FFBEDE 0%, #FA9AC9 100%);
+}
+
+.tappy-home-card h3 {
+  color: #2B211B;
+}
+
+.tappy-home-card p {
+  color: rgba(43, 33, 27, 0.78);
+}
+
+.tappy-keycap {
+  border-radius: 13px;
+  transition: transform 110ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 110ms cubic-bezier(0.22, 1, 0.36, 1), background-color 120ms ease;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 首页背板数字/字母涟漪动画（仅使用合成器属性 transform + opacity，零重排） */
+@keyframes rippleExpand {
+  0% {
+    transform: scale(0.35);
     opacity: 0.6;
+  }
+  100% {
+    transform: scale(2.15);
+    opacity: 0;
+  }
 }
 
-.star-decoration::before {
-    content: '★';
-    font-size: 1.5rem;
-    color: #FFD93D;
+@keyframes rippleCharRise {
+  0% {
+    transform: translate(-50%, -40%) scale(0.75);
+    opacity: 0;
+  }
+  25% {
+    transform: translate(-50%, -85%) scale(1.12);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate(-50%, -175%) scale(0.95);
+    opacity: 0;
+  }
 }
 
-.heart-decoration {
-    position: fixed;
-    pointer-events: none;
-    opacity: 0.5;
+.tappy-ripple-ring {
+  animation: rippleExpand 950ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-.heart-decoration::before {
-    content: '♥';
-    font-size: 1rem;
-    color: #FF8B8B;
+.tappy-ripple-ring-delayed {
+  animation: rippleExpand 950ms cubic-bezier(0.22, 1, 0.36, 1) 140ms forwards;
+  opacity: 0;
+}
+
+.tappy-ripple-char {
+  animation: rippleCharRise 950ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* 小游戏全屏最大化时，舞台自动撑满视口剩余高度 */
+.arcade-fullscreen > div:last-child > div:first-child {
+  height: calc(100vh - 92px) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tappy-ripple-ring,
+  .tappy-ripple-ring-delayed,
+  .tappy-ripple-char {
+    animation: none;
+    opacity: 0;
+  }
 }

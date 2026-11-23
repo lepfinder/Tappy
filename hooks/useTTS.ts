@@ -45,7 +45,7 @@ export const useTTS = () => {
         }
 
         const langKey = lang === 'zh-CN' ? 'zh' : 'en';
-        const audioFile = manifest?.[langKey]?.[text];
+        const audioFile = manifest?.[langKey]?.[text] || manifest?.[langKey]?.[text.toLowerCase()];
 
         if (audioFile) {
             const audio = new Audio(`/audio/${langKey}/${audioFile}`);

@@ -4,17 +4,130 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Tappy - 儿童打字练习</title>
-  <meta name="description" content="Tappy 是一款有趣的中英双语打字启蒙应用，专为儿童设计，无需登录，支持离线使用。" />
-  <meta name="theme-color" content="#F3F4F6" />
-  
-  <!-- PWA Icons -->
+  <title>Tappy - 免费儿童中英双语打字启蒙与拼音盲打练习</title>
+  <meta name="description" content="Tappy 是一款专为 6-12 岁儿童设计的免费中英双语打字启蒙应用，支持英语字母盲打、高频单词、拼音汉字、小学必背古诗课文同步练习及快乐摘苹果、太空打字战机两大精品打字小游戏，无需注册登录，支持离线 PWA 使用。" />
+  <meta name="keywords" content="儿童打字练习,小学生免费打字网站,拼音打字练习,英文盲打启蒙,指法练习,趣味打字游戏,摘苹果打字,太空打字战机,小学古诗打字,Tappy" />
+  <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#FFFBF2" />
+
+  <!-- Open Graph / 社交分享卡片 -->
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="zh_CN" />
+  <meta property="og:site_name" content="Tappy" />
+  <meta property="og:title" content="Tappy - 免费儿童中英双语打字启蒙与趣味游戏" />
+  <meta property="og:description" content="专为 6-12 岁小朋友打造的零广告、免登录、离线可用的双语打字乐园：指法盲打、拼音古诗、4 大经典打字小游戏与 3D 成就勋章。" />
+  <meta property="og:image" content="/pwa-512x512.png" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Tappy - 免费儿童中英双语打字启蒙" />
+  <meta name="twitter:description" content="6-12 岁儿童双语打字练习与趣味打字游戏，无需登录，支持离线使用。" />
+  <meta name="twitter:image" content="/pwa-512x512.png" />
+
+  <!-- PWA Icons & Preload -->
   <link rel="icon" type="image/png" href="/pwa-192x192.png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-  
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&family=Zcool+KuaiLe&display=swap"
-    rel="stylesheet">
+  <link rel="preload" as="image" href="/images/bear_logo.webp" type="image/webp" />
+
+  <!-- Google Fonts 非阻塞异步加载（避免国内网络挂起阻塞首屏渲染） -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&family=Zcool+KuaiLe&display=swap"
+    rel="stylesheet"
+    media="print"
+    onload="this.media='all'"
+  />
+  <noscript>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&family=Zcool+KuaiLe&display=swap"
+      rel="stylesheet"
+    />
+  </noscript>
+
+  <!-- GEO 结构化数据：WebApplication -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Tappy 儿童打字练习",
+      "alternateName": "Tappy Typing",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "Web, macOS, Windows, iPadOS",
+      "inLanguage": ["zh-CN", "en"],
+      "isAccessibleForFree": true,
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "CNY"
+      },
+      "audience": {
+        "@type": "EducationalAudience",
+        "educationalRole": "student",
+        "suggestedMinAge": 6,
+        "suggestedMaxAge": 12
+      },
+      "description": "专为 6-12 岁儿童设计的免费中英双语打字启蒙与盲打指法练习应用，包含字母基准行、英文单词、英文短文、中文拼音、中文短句、1-9年级古诗课文同步练习以及快乐摘苹果、太空打字战机两大精品打字小游戏，无需注册登录，支持离线 PWA。",
+      "featureList": [
+        "标准十指盲打分区键盘与左右手实时指法引导",
+        "中英双语切换与实时语音朗读",
+        "1-9 年级教材同步古诗与精选短文练习",
+        "两大精品打字游戏：快乐摘苹果、太空打字战机",
+        "纯本地 IndexedDB 存储多成员成长档案与 3D 成就勋章，零隐私上传",
+        "支持离线安装为 PWA 桌面应用"
+      ]
+    }
+  </script>
+
+  <!-- GEO 结构化数据：FAQPage（便于 AI 搜索引擎直接精准引用） -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Tappy 适合几岁的孩子学习打字？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Tappy 专为 6-12 岁小学生及初中启蒙阶段孩子设计，从零基础的基准行单键定位（ASDF/JKL）起步，逐步过渡到英文单词、中文拼音、古诗课文与趣味打字游戏。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "使用 Tappy 需要注册账号或付费吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "完全免费且无需注册登录。所有练习进度、速度统计和成就勋章均保存在浏览器本地 IndexedDB 中，支持家庭多成员切换和 JSON 导入导出，不上传任何儿童隐私数据。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Tappy 支持中文拼音和小学古诗同步练习吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "支持。内置拼音乐趣、中文短句、1-9 年级必背古诗和精选课文短文，输入拼音即可逐字完成汉字拼写，同时自动检测中文输入法开启并提醒切换英文键盘。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "没有网络可以离线使用吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "支持。Tappy 是渐进式 Web 应用（PWA），首次访问后即可离线运行，也可直接安装到电脑或平板桌面。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Tappy 包含哪些趣味打字小游戏？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "内置两大精品打字游戏：快乐摘苹果（练单键与短词反应）和太空打字战机（练单词拼写提速与 Boss 挑战），均支持 4 档渐进难度、中英文拼音切换与护眼大字词签。"
+          }
+        }
+      ]
+    }
+  </script>
 
   <!-- Google Analytics 4 -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-21H8J2JQ3E"></script>
@@ -39,6 +152,19 @@
 
 <body>
   <div id="root"></div>
+  <noscript>
+    <main style="max-width:720px;margin:40px auto;padding:24px;font-family:sans-serif;line-height:1.7;color:#334155;">
+      <h1>Tappy - 免费儿童中英双语打字启蒙</h1>
+      <p>Tappy 是专为 6-12 岁儿童设计的免费打字学习乐园，无需注册登录，支持离线使用。</p>
+      <ul>
+        <li>字母练习：基准行、上排、下排、Shift 大小写与常用标点盲打指法教学</li>
+        <li>英文单词与英文短文：高频词拼写与趣味英语小故事</li>
+        <li>中文拼音、中文短句、小学古诗与课文短文：1-9 年级教材同步拼音打字</li>
+        <li>趣味游戏厅：快乐摘苹果、太空打字战机</li>
+      </ul>
+      <p>请开启浏览器 JavaScript 以体验完整的交互式打字练习。</p>
+    </main>
+  </noscript>
   <script type="module" src="/index.tsx"></script>
 </body>
 

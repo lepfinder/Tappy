@@ -7,6 +7,7 @@ import { db, PracticeRecord, AVATAR_OPTIONS } from '../db';
 import { useUserStore } from '../store/useUserStore';
 import { useGameStore } from '../store/useGameStore';
 import { BadgeUnlockModal } from './BadgeUnlockModal';
+import { UserAvatar } from './UserAvatar';
 
 // Level configuration
 const LEVEL_CONFIG = [
@@ -36,6 +37,7 @@ function getLevelInfo(totalXP: number) {
 
     const xpInCurrentLevel = totalXP - currentLevel.minXP;
     const xpNeededForNext = nextLevel.minXP - currentLevel.minXP;
+    const xpRemaining = Math.max(0, nextLevel.minXP - totalXP);
     const progress = xpNeededForNext > 0 ? (xpInCurrentLevel / xpNeededForNext) * 100 : 100;
 
     return {
@@ -45,6 +47,7 @@ function getLevelInfo(totalXP: number) {
         progress: Math.min(progress, 100),
         xpCurrent: xpInCurrentLevel,
         xpNeeded: xpNeededForNext,
+        xpRemaining,
         totalXP
     };
 }
@@ -337,12 +340,82 @@ function useAllUsersChartData(currentUserId: number | undefined) {
 import { BADGES, Badge } from '../data/badges';
 import { useBadgeSystem, getUnlockedBadges } from '../hooks/useBadgeSystem';
 
-// Badge Section Component - Using new 12-badge system with database
+// 4 档金属/宝石品阶材质配置（彻底告别清一色淡黄框）
+type MedalTierKey = 'emerald' | 'sapphire' | 'gold' | 'mythic';
+
+const MEDAL_TIERS: Record<
+    MedalTierKey,
+    {
+        labelCn: string;
+        labelEn: string;
+        ringGradient: string;
+        innerBg: string;
+        cardBg: string;
+        cardBorder: string;
+        pillBg: string;
+        pillText: string;
+        glow: string;
+    }
+> = {
+    emerald: {
+        labelCn: '翡翠',
+        labelEn: 'Emerald',
+        ringGradient: 'linear-gradient(135deg, #34D399 0%, #10B981 55%, #059669 100%)',
+        innerBg: 'radial-gradient(circle at 30% 25%, #ECFDF5 0%, #D1FAE5 100%)',
+        cardBg: 'linear-gradient(180deg, #FFFFFF 0%, #F0FDF4 100%)',
+        cardBorder: '#A7F3D0',
+        pillBg: 'bg-emerald-100/90',
+        pillText: 'text-emerald-700',
+        glow: '0 8px 20px -6px rgba(16, 185, 129, 0.35)'
+    },
+    sapphire: {
+        labelCn: '星辉',
+        labelEn: 'Sapphire',
+        ringGradient: 'linear-gradient(135deg, #60A5FA 0%, #3B82F6 55%, #2563EB 100%)',
+        innerBg: 'radial-gradient(circle at 30% 25%, #EFF6FF 0%, #DBEAFE 100%)',
+        cardBg: 'linear-gradient(180deg, #FFFFFF 0%, #EFF6FF 100%)',
+        cardBorder: '#BFDBFE',
+        pillBg: 'bg-blue-100/90',
+        pillText: 'text-blue-700',
+        glow: '0 8px 20px -6px rgba(59, 130, 246, 0.35)'
+    },
+    gold: {
+        labelCn: '荣耀',
+        labelEn: 'Gold',
+        ringGradient: 'linear-gradient(135deg, #FDE047 0%, #F59E0B 55%, #D97706 100%)',
+        innerBg: 'radial-gradient(circle at 30% 25%, #FFFBEB 0%, #FEF3C7 100%)',
+        cardBg: 'linear-gradient(180deg, #FFFFFF 0%, #FFFBEB 100%)',
+        cardBorder: '#FDE68A',
+        pillBg: 'bg-amber-100/90',
+        pillText: 'text-amber-800',
+        glow: '0 8px 20px -6px rgba(245, 158, 11, 0.38)'
+    },
+    mythic: {
+        labelCn: '传奇',
+        labelEn: 'Mythic',
+        ringGradient: 'linear-gradient(135deg, #E879F9 0%, #8B5CF6 50%, #F59E0B 100%)',
+        innerBg: 'radial-gradient(circle at 30% 25%, #FAF5FF 0%, #F3E8FF 100%)',
+        cardBg: 'linear-gradient(180deg, #FFFFFF 0%, #FAF5FF 100%)',
+        cardBorder: '#DDD6FE',
+        pillBg: 'bg-purple-100/90',
+        pillText: 'text-purple-700',
+        glow: '0 8px 22px -6px rgba(139, 92, 246, 0.42)'
+    }
+};
+
+function getBadgeTier(badge: Badge): MedalTierKey {
+    if (badge.category === 'Master' || badge.id === 'perfectionist') return 'mythic';
+    if (badge.category === 'Starter') return 'emerald';
+    if (badge.category === 'Speed' || badge.category === 'Content') return 'sapphire';
+    return 'gold';
+}
+
+// Badge Section Component - 4 档材质立体勋章展柜
 const BadgeSection: React.FC<{
     userId: number;
     language: string;
 }> = ({ userId, language }) => {
-    const [tooltipBadge, setTooltipBadge] = useState<string | null>(null);
+    const [filter, setFilter] = useState<'all' | 'unlocked' | 'locked'>('all');
     const [unlockedBadgeIds, setUnlockedBadgeIds] = useState<Set<string>>(new Set());
     const [isLoading, setIsLoading] = useState(true);
 
@@ -405,12 +478,28 @@ const BadgeSection: React.FC<{
         );
     }
 
+    const progressPct = Math.round((unlockedBadgeIds.size / BADGES.length) * 100);
+
+    // 已解锁的勋章自动排在前面，并支持全部/已解锁/待挑战筛选
+    const displayBadges = [...BADGES]
+        .sort((a, b) => Number(unlockedBadgeIds.has(b.id)) - Number(unlockedBadgeIds.has(a.id)))
+        .filter((b) => {
+            if (filter === 'unlocked') return unlockedBadgeIds.has(b.id);
+            if (filter === 'locked') return !unlockedBadgeIds.has(b.id);
+            return true;
+        });
+
+    const filterLabels =
+        language === 'cn'
+            ? { all: '全部', unlocked: '已点亮', locked: '待挑战' }
+            : { all: 'All', unlocked: 'Unlocked', locked: 'Locked' };
+
     return (
         <motion.div
-            className="bg-white rounded-3xl p-6 shadow-lg"
-            initial={{ opacity: 0, y: 20 }}
+            className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 sm:p-7 shadow-lg border-2 border-white"
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.55 }}
+            transition={{ delay: 0.2 }}
         >
             {/* Celebration Modal */}
             {showBadgeModal && (
@@ -420,91 +509,159 @@ const BadgeSection: React.FC<{
                     language={language}
                 />
             )}
-            <h3 className="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
-                🏅 {t.title}
-                <span className="text-sm font-normal text-gray-400">
-                    ({unlockedBadgeIds.size}/{BADGES.length})
-                </span>
-            </h3>
 
-            {/* Responsive Grid: 4 columns on desktop, 3 on mobile */}
-            <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
-                {BADGES.map((badge) => {
+            {/* 勋章陈列馆顶栏：标题 + 筛选胶囊 + 收集进度 */}
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center shadow-xs">
+                        <img src="/icons/fluent3d/trophy.webp" alt="" className="w-6 h-6 object-contain" />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-extrabold text-slate-800 leading-tight flex items-center gap-2">
+                            <span>{language === 'cn' ? '荣誉勋章馆' : 'Trophy Showcase'}</span>
+                            <span className="text-xs font-extrabold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100 tabular-nums">
+                                {unlockedBadgeIds.size} / {BADGES.length}
+                            </span>
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                            {language === 'cn'
+                                ? `已解锁 ${progressPct}% 荣誉藏品，点击不同品阶查看目标`
+                                : `${progressPct}% collected — unlock Emerald, Sapphire, Gold & Mythic medals`}
+                        </p>
+                    </div>
+                </div>
+
+                {/* 筛选胶囊 */}
+                <div className="flex items-center bg-slate-100/90 p-1 rounded-full gap-1">
+                    {(['all', 'unlocked', 'locked'] as const).map((key) => (
+                        <button
+                            key={key}
+                            type="button"
+                            onClick={() => setFilter(key)}
+                            className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                                filter === key
+                                    ? 'bg-white text-slate-800 shadow-sm'
+                                    : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                        >
+                            {filterLabels[key]}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* 竖版立体金属勋章展柜网格 */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                {displayBadges.map((badge) => {
                     const isUnlocked = unlockedBadgeIds.has(badge.id);
-                    const isTooltipVisible = tooltipBadge === badge.id;
+                    const tier = MEDAL_TIERS[getBadgeTier(badge)];
 
                     return (
-                        <div
+                        <motion.div
                             key={badge.id}
-                            className="relative flex flex-col items-center"
-                            onMouseEnter={() => setTooltipBadge(badge.id)}
-                            onMouseLeave={() => setTooltipBadge(null)}
-                            onClick={() => setTooltipBadge(isTooltipVisible ? null : badge.id)}
+                            whileHover={{ y: -4 }}
+                            transition={{ type: 'spring', stiffness: 320, damping: 22 }}
+                            style={
+                                isUnlocked
+                                    ? {
+                                          background: tier.cardBg,
+                                          borderColor: tier.cardBorder,
+                                          boxShadow: '0 6px 18px -10px rgba(15,23,42,0.12)'
+                                      }
+                                    : undefined
+                            }
+                            className={`relative rounded-2xl p-4 border-2 flex flex-col items-center text-center transition-all ${
+                                isUnlocked
+                                    ? ''
+                                    : 'bg-slate-50/75 border-dashed border-slate-200/90'
+                            }`}
                         >
-                            <motion.div
-                                className={`
-                                    w-14 h-14 rounded-2xl flex items-center justify-center cursor-pointer
-                                    transition-all duration-200 relative overflow-hidden
-                                    ${isUnlocked
-                                        ? 'bg-gradient-to-br from-yellow-100 via-yellow-50 to-orange-100 shadow-md'
-                                        : 'bg-gray-100'
-                                    }
-                                `}
-                                style={{
-                                    filter: isUnlocked ? 'none' : 'grayscale(1)',
-                                    opacity: isUnlocked ? 1 : 0.5,
-                                }}
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.95 }}
-                            >
-                                {badge.icon ? (
-                                    <img src={badge.icon} alt={badge.nameEn} className="w-12 h-12 object-contain" />
-                                ) : (
-                                    <span className="text-2xl">{badge.emoji}</span>
-                                )}
-                                {!isUnlocked && (
-                                    <span className="absolute -bottom-1 -right-1 text-xs">🔒</span>
-                                )}
-                                {isUnlocked && (
-                                    <motion.div
-                                        className="absolute inset-0 rounded-2xl"
-                                        animate={{
-                                            boxShadow: [
-                                                '0 0 0 0 rgba(255, 215, 0, 0)',
-                                                '0 0 8px 2px rgba(255, 215, 0, 0.3)',
-                                                '0 0 0 0 rgba(255, 215, 0, 0)',
-                                            ],
+                            {/* 右上角品阶小标（仅已解锁展示） */}
+                            {isUnlocked && (
+                                <span
+                                    className={`absolute top-2.5 right-2.5 px-1.5 py-0.5 rounded-md text-[10px] font-extrabold ${tier.pillBg} ${tier.pillText}`}
+                                >
+                                    {language === 'cn' ? tier.labelCn : tier.labelEn}
+                                </span>
+                            )}
+
+                            {/* 勋章本体：已解锁为双层立体金属光泽奖章，未解锁为内凹磨砂卡槽 */}
+                            <div className="relative mt-1 mb-3">
+                                {isUnlocked ? (
+                                    <div
+                                        className="w-[68px] h-[68px] rounded-full p-[3.5px] relative"
+                                        style={{
+                                            background: tier.ringGradient,
+                                            boxShadow: tier.glow
                                         }}
-                                        transition={{ duration: 2, repeat: Infinity }}
-                                    />
-                                )}
-                            </motion.div>
-
-                            {/* Badge name */}
-                            <span className={`text-[10px] mt-1 text-center truncate w-full ${isUnlocked ? 'text-gray-600' : 'text-gray-400'}`}>
-                                {language === 'cn' ? badge.name : badge.nameEn}
-                            </span>
-
-                            {/* Tooltip */}
-                            <AnimatePresence>
-                                {isTooltipVisible && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 5 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: 5 }}
-                                        className="absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg whitespace-nowrap shadow-lg"
                                     >
-                                        <div className="font-bold flex items-center gap-1">
-                                            {badge.emoji} {language === 'cn' ? badge.name : badge.nameEn}
+                                        {/* 金属内盘 + 斜向玻璃高光 */}
+                                        <div
+                                            className="w-full h-full rounded-full flex items-center justify-center relative overflow-hidden border border-white/80"
+                                            style={{ background: tier.innerBg }}
+                                        >
+                                            <div
+                                                className="absolute -top-4 -left-4 w-12 h-12 rounded-full bg-white/55 blur-[1px] pointer-events-none"
+                                            />
+                                            {badge.icon ? (
+                                                <img
+                                                    src={badge.icon}
+                                                    alt={badge.nameEn}
+                                                    loading="lazy"
+                                                    className="w-9 h-9 object-contain relative z-10 drop-shadow-sm"
+                                                />
+                                            ) : (
+                                                <span className="text-2xl relative z-10">{badge.emoji}</span>
+                                            )}
                                         </div>
-                                        <div className="text-gray-300 mt-0.5">
-                                            {isUnlocked ? '✅ ' : '🔒 '}{language === 'cn' ? badge.description : badge.descriptionEn}
-                                        </div>
-                                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-gray-800" />
-                                    </motion.div>
+                                        {/* 底部小星芒缀饰 */}
+                                        <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 px-1.5 py-0 rounded-full bg-white shadow-sm border border-amber-200 text-[9px] font-black text-amber-500 leading-4">
+                                            ★
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <div
+                                        className="w-[68px] h-[68px] rounded-full flex items-center justify-center relative border border-slate-200/80"
+                                        style={{
+                                            background: '#F1F5F9',
+                                            boxShadow: 'inset 0 3px 7px rgba(15, 23, 42, 0.08)'
+                                        }}
+                                    >
+                                        {badge.icon ? (
+                                            <img
+                                                src={badge.icon}
+                                                alt={badge.nameEn}
+                                                loading="lazy"
+                                                className="w-8 h-8 object-contain grayscale opacity-25"
+                                            />
+                                        ) : (
+                                            <span className="text-2xl grayscale opacity-25">{badge.emoji}</span>
+                                        )}
+                                        <span className="absolute -bottom-1 right-0 w-5 h-5 rounded-full bg-white shadow-xs border border-slate-200 flex items-center justify-center text-[10px]">
+                                            🔒
+                                        </span>
+                                    </div>
                                 )}
-                            </AnimatePresence>
-                        </div>
+                            </div>
+
+                            {/* 勋章名称 */}
+                            <h4
+                                className={`text-sm font-extrabold leading-snug ${
+                                    isUnlocked ? 'text-slate-800' : 'text-slate-500'
+                                }`}
+                            >
+                                {language === 'cn' ? badge.name : badge.nameEn}
+                            </h4>
+
+                            {/* 解锁条件 */}
+                            <p
+                                className={`text-[11px] leading-snug mt-1 line-clamp-2 ${
+                                    isUnlocked ? 'text-slate-500' : 'text-slate-400'
+                                }`}
+                            >
+                                {language === 'cn' ? badge.description : badge.descriptionEn}
+                            </p>
+                        </motion.div>
                     );
                 })}
             </div>
@@ -512,23 +669,29 @@ const BadgeSection: React.FC<{
     );
 };
 
-// Stat Card Component
+// Stat Card Component - 横排精致 3D 数据卡（左图标右大数字，紧凑无空洞）
 const StatCard: React.FC<{
     icon: React.ReactNode;
     label: string;
     value: string | number;
-    color: string;
+    iconBg: string;
     delay: number;
-}> = ({ icon, label, value, color, delay }) => (
+}> = ({ icon, label, value, iconBg, delay }) => (
     <motion.div
-        className={`${color} rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center`}
-        initial={{ opacity: 0, y: 20 }}
+        className="bg-white/95 backdrop-blur-sm rounded-3xl p-4 sm:p-5 shadow-md border-2 border-white flex items-center gap-4 hover:shadow-lg transition-shadow"
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay, duration: 0.4 }}
+        transition={{ delay, duration: 0.35 }}
     >
-        <div className="text-gray-500 mb-2">{icon}</div>
-        <div className="text-2xl font-bold text-gray-700">{value}</div>
-        <div className="text-xs text-gray-500 mt-1">{label}</div>
+        <div className={`w-13 h-13 rounded-2xl ${iconBg} flex items-center justify-center shrink-0 shadow-xs border border-black/[0.03]`}>
+            {icon}
+        </div>
+        <div className="min-w-0">
+            <div className="text-xs font-bold text-slate-400">{label}</div>
+            <div className="text-2xl sm:text-3xl font-black text-slate-800 tabular-nums leading-tight mt-0.5 truncate">
+                {value}
+            </div>
+        </div>
     </motion.div>
 );
 
@@ -842,7 +1005,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
     }
 
     return (
-        <div className="w-full max-w-2xl mx-auto space-y-6">
+        <div className="w-full max-w-6xl mx-auto px-2 sm:px-4 pt-5 sm:pt-7 space-y-6 pb-10">
             {/* Edit Profile Modal */}
             <AnimatePresence>
                 {isEditing && (
@@ -876,8 +1039,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
                             <div className="p-6 space-y-5">
                                 {/* Current Avatar Preview */}
                                 <div className="flex justify-center">
-                                    <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center text-5xl shadow-lg border-4 border-white">
-                                        {editAvatar}
+                                    <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center shadow-lg border-4 border-white">
+                                        <UserAvatar avatar={editAvatar} size={52} />
                                     </div>
                                 </div>
 
@@ -893,7 +1056,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
                                                 type="button"
                                                 onClick={() => setEditAvatar(avatar)}
                                                 className={`
-                                                    w-12 h-12 rounded-xl text-2xl flex items-center justify-center
+                                                    w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer
                                                     transition-all duration-200 hover:scale-110
                                                     ${editAvatar === avatar
                                                         ? 'bg-purple-100 ring-2 ring-kid-purple scale-110 shadow-md'
@@ -901,7 +1064,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
                                                     }
                                                 `}
                                             >
-                                                {avatar}
+                                                <UserAvatar avatar={avatar} size={32} />
                                             </button>
                                         ))}
                                     </div>
@@ -980,7 +1143,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
 
                             {/* User info */}
                             <div className="flex items-center justify-center gap-2 mb-4">
-                                <span className="text-3xl">{currentUser.avatar}</span>
+                                <UserAvatar avatar={currentUser.avatar} size={32} />
                                 <span className="font-medium text-gray-700">{currentUser.name}</span>
                             </div>
 
@@ -1011,131 +1174,140 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
                 )}
             </AnimatePresence>
 
-            {/* Back Button */}
-            <motion.button
-                onClick={onBack}
-                className="flex items-center gap-2 text-gray-500 hover:text-kid-purple transition-colors"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-            >
-                <ArrowLeft size={20} />
-                <span>{t.back}</span>
-            </motion.button>
+            {/* 顶部 Bento 双栏：左侧纯白档案名片 + 右侧 2×2 紧凑数据卡 */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+                {/* 左侧：打字员护照名片（跟随全局配色变量实时切换） */}
+                <motion.div
+                    className="tappy-passport lg:col-span-5 rounded-3xl p-6 border border-white/30 flex flex-col justify-between gap-5 relative overflow-hidden text-white transition-all duration-300"
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                >
+                    {/* 柔和星光光晕装饰 */}
+                    <div
+                        className="absolute -top-12 -right-12 w-44 h-44 rounded-full pointer-events-none"
+                        style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.28) 0%, transparent 70%)' }}
+                    />
+                    <div
+                        className="absolute -bottom-14 -left-10 w-40 h-40 rounded-full pointer-events-none"
+                        style={{ background: 'radial-gradient(circle, rgba(253,224,71,0.22) 0%, transparent 70%)' }}
+                    />
 
-            {/* Header - Identity Card */}
-            <motion.div
-                className="bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 rounded-3xl p-6 shadow-lg"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-            >
-                <div className="flex items-center gap-5">
-                    {/* Avatar */}
-                    <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center text-5xl shadow-lg border-4 border-white">
-                        {currentUser.avatar}
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1">
-                        <h2 className="text-2xl font-cartoon text-gray-800">{currentUser.name}</h2>
-                        <div className="flex items-center gap-2 mt-1">
-                            <span className="bg-kid-purple text-white text-xs px-2 py-0.5 rounded-full font-bold">
-                                Lv.{levelInfo.level}
-                            </span>
-                            <span className="text-gray-600 text-sm">
-                                {language === 'cn' ? levelInfo.title : levelInfo.titleEn}
-                            </span>
-                        </div>
-
-                        {/* XP Bar */}
-                        <div className="mt-3">
-                            <div className="flex justify-between text-xs text-gray-500 mb-1">
-                                <span>XP: {levelInfo.xpCurrent}</span>
-                                <span>{levelInfo.xpNeeded > 0 ? `${levelInfo.xpNeeded} to next` : 'MAX'}</span>
+                    <div className="flex items-start justify-between gap-3 relative z-10">
+                        <div className="flex items-center gap-4">
+                            <div className="w-18 h-18 bg-white rounded-full flex items-center justify-center shadow-lg border-4 border-white/90 ring-4 ring-white/20 shrink-0">
+                                <UserAvatar avatar={currentUser.avatar} size={48} />
                             </div>
-                            <div className="h-2 bg-white/60 rounded-full overflow-hidden">
-                                <motion.div
-                                    className="h-full bg-gradient-to-r from-kid-purple to-kid-blue rounded-full"
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${levelInfo.progress}%` }}
-                                    transition={{ duration: 1, delay: 0.5 }}
-                                />
+                            <div>
+                                <h2 className="text-2xl font-cartoon font-black text-white leading-tight drop-shadow-xs">
+                                    {currentUser.name}
+                                </h2>
+                                <div className="flex items-center gap-2 mt-1.5">
+                                    <span className="bg-amber-300 text-amber-950 text-xs px-2.5 py-0.5 rounded-full font-black shadow-xs">
+                                        Lv.{levelInfo.level}
+                                    </span>
+                                    <span className="text-white/90 text-sm font-bold">
+                                        {language === 'cn' ? levelInfo.title : levelInfo.titleEn}
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex gap-2">
-                        {/* Edit Button */}
-                        <button
-                            onClick={handleStartEdit}
-                            className="w-10 h-10 rounded-full bg-white/80 hover:bg-white flex items-center justify-center text-gray-500 hover:text-kid-purple transition-colors shadow-sm"
-                            title={t.edit}
-                        >
-                            <Edit3 size={18} />
-                        </button>
-
-                        {/* Delete Button - only show if more than one user */}
-                        {allUsers.length > 1 && (
+                        {/* 编辑与删除 */}
+                        <div className="flex gap-1.5 shrink-0">
                             <button
-                                onClick={() => setShowDeleteConfirm(true)}
-                                className="w-10 h-10 rounded-full bg-white/80 hover:bg-red-50 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors shadow-sm"
-                                title={t.deleteUser}
+                                onClick={handleStartEdit}
+                                className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-sm flex items-center justify-center text-white transition-colors cursor-pointer"
+                                title={t.edit}
                             >
-                                <Trash2 size={18} />
+                                <Edit3 size={16} />
                             </button>
-                        )}
+                            {allUsers.length > 1 && (
+                                <button
+                                    onClick={() => setShowDeleteConfirm(true)}
+                                    className="w-9 h-9 rounded-full bg-white/15 hover:bg-rose-400/80 backdrop-blur-sm flex items-center justify-center text-white transition-colors cursor-pointer"
+                                    title={t.deleteUser}
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            )}
+                        </div>
                     </div>
+
+                    {/* 毛玻璃经验进度条 */}
+                    <div className="bg-white/15 backdrop-blur-md rounded-2xl p-3.5 border border-white/20 relative z-10">
+                        <div className="flex justify-between text-xs font-bold mb-2 tabular-nums">
+                            <span className="text-white">
+                                {language === 'cn'
+                                    ? `当前经验 ${levelInfo.totalXP} XP`
+                                    : `${levelInfo.totalXP} XP`}
+                            </span>
+                            <span className="text-amber-200">
+                                {levelInfo.xpRemaining > 0
+                                    ? language === 'cn'
+                                        ? `还差 ${levelInfo.xpRemaining} XP 升级`
+                                        : `${levelInfo.xpRemaining} XP to next`
+                                    : language === 'cn'
+                                        ? '已满级 MAX'
+                                        : 'MAX'}
+                            </span>
+                        </div>
+                        <div className="h-2.5 bg-black/20 rounded-full overflow-hidden">
+                            <motion.div
+                                className="h-full bg-gradient-to-r from-amber-300 via-yellow-200 to-white rounded-full shadow-xs"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${Math.max(5, levelInfo.progress)}%` }}
+                                transition={{ duration: 0.9, delay: 0.2 }}
+                            />
+                        </div>
+                    </div>
+                </motion.div>
+
+                {/* 右侧：2×2 横排 3D 数据卡片 */}
+                <div className="lg:col-span-7 grid grid-cols-2 gap-4">
+                    <StatCard
+                        icon={<img src="/icons/fluent3d/alarm_clock.webp" alt="" className="w-8 h-8 object-contain drop-shadow-xs" />}
+                        label={t.totalTime}
+                        value={timeDisplay}
+                        iconBg="bg-sky-50"
+                        delay={0.1}
+                    />
+                    <StatCard
+                        icon={<img src="/icons/fluent3d/lightning.webp" alt="" className="w-8 h-8 object-contain drop-shadow-xs" />}
+                        label={t.bestSpeed}
+                        value={`${stats.bestWpm} WPM`}
+                        iconBg="bg-amber-50"
+                        delay={0.15}
+                    />
+                    <StatCard
+                        icon={<img src="/icons/fluent3d/calendar.webp" alt="" className="w-8 h-8 object-contain drop-shadow-xs" />}
+                        label={t.sessions}
+                        value={stats.totalSessions}
+                        iconBg="bg-emerald-50"
+                        delay={0.2}
+                    />
+                    <StatCard
+                        icon={<img src="/icons/fluent3d/trophy.webp" alt="" className="w-8 h-8 object-contain drop-shadow-xs" />}
+                        label={t.avgAccuracy}
+                        value={`${stats.avgAccuracy}%`}
+                        iconBg="bg-rose-50"
+                        delay={0.25}
+                    />
                 </div>
-
-                {/* Subtitle */}
-                <p className="text-center text-gray-500 mt-4 text-sm italic">
-                    ✨ {t.subtitle}
-                </p>
-            </motion.div>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <StatCard
-                    icon={<Clock size={24} />}
-                    label={t.totalTime}
-                    value={timeDisplay}
-                    color="bg-blue-50"
-                    delay={0.2}
-                />
-                <StatCard
-                    icon={<Zap size={24} />}
-                    label={t.bestSpeed}
-                    value={`${stats.bestWpm} WPM`}
-                    color="bg-yellow-50"
-                    delay={0.3}
-                />
-                <StatCard
-                    icon={<Calendar size={24} />}
-                    label={t.sessions}
-                    value={stats.totalSessions}
-                    color="bg-green-50"
-                    delay={0.4}
-                />
-                <StatCard
-                    icon={<Target size={24} />}
-                    label={t.avgAccuracy}
-                    value={`${stats.avgAccuracy}%`}
-                    color="bg-pink-50"
-                    delay={0.5}
-                />
             </div>
 
             {/* Badge Section - Achievements */}
             <BadgeSection userId={currentUser.id!} language={language} />
 
+            {/* 底部双栏：左侧进步趋势图 + 右侧最近练习记录 */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
             {/* Progress Chart */}
             {(stats.chartData.length > 0 || (showComparison && allUsersChart.chartData.length > 0)) && (
                 <motion.div
-                    className="bg-white rounded-3xl p-6 shadow-lg"
+                    className="lg:col-span-7 bg-white/95 backdrop-blur-sm rounded-3xl p-6 shadow-lg border-2 border-white flex flex-col justify-between"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
+                    transition={{ delay: 0.35 }}
                 >
                     {/* Header with toggle */}
                     <div className="flex items-center justify-between mb-4">
@@ -1289,10 +1461,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
             {/* Recent Activity */}
             {stats.recentRecords.length > 0 ? (
                 <motion.div
-                    className="bg-white rounded-3xl p-6 shadow-lg"
+                    className="lg:col-span-5 bg-white/95 backdrop-blur-sm rounded-3xl p-6 shadow-lg border-2 border-white"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.7 }}
+                    transition={{ delay: 0.4 }}
                 >
                     <h3 className="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
                         <Star size={20} className="text-yellow-500" />
@@ -1345,15 +1517,16 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onBack }) => {
                 </motion.div>
             ) : (
                 <motion.div
-                    className="bg-white rounded-3xl p-8 shadow-lg text-center"
+                    className="lg:col-span-12 bg-white/95 backdrop-blur-sm rounded-3xl p-8 shadow-lg border-2 border-white text-center"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
+                    transition={{ delay: 0.4 }}
                 >
                     <div className="text-5xl mb-4">🎯</div>
                     <p className="text-gray-500">{t.noData}</p>
                 </motion.div>
             )}
+            </div>
 
             {/* Practice Heatmap */}
             <PracticeHeatmap heatmapData={stats.heatmapData} language={language} />

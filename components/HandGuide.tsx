@@ -1,148 +1,50 @@
 import React from 'react';
-import { FingerName, HandSide } from '../utils/fingerMapping';
+import { FingerName, HandSide, FingerKey } from '../utils/fingerMapping';
+import { FINGER_PALETTE } from '../constants';
 
 interface HandGuideProps {
-    side: HandSide;
-    activeFinger: FingerName | null;
-    className?: string;
+  side: HandSide;
+  activeFinger: FingerName | null;
+  className?: string;
 }
 
-// Colors
-const INACTIVE_COLOR = '#E2E8F0';  // gray-200
-const ACTIVE_COLOR = '#60A5FA';    // blue-400
-const STROKE_COLOR = '#94A3B8';    // slate-400
-
+/**
+ * 圆润可爱的矢量双手引导图：激活手指色与键盘 FINGER_PALETTE 1:1 严格一致
+ */
 export const HandGuide: React.FC<HandGuideProps> = ({
-    side,
-    activeFinger,
-    className = ''
+  side,
+  activeFinger,
+  className = ''
 }) => {
-    // Determine fill color for each finger
-    const getFingerColor = (finger: FingerName): string => {
-        return activeFinger === finger ? ACTIVE_COLOR : INACTIVE_COLOR;
+  const suffix = side === 'left' ? 'l' : 'r';
+
+  const getFingerStyle = (finger: FingerName) => {
+    const isActive = activeFinger === finger;
+    const key: FingerKey = finger === 'thumb' ? 'thumb' : (`${finger}-${suffix}` as FingerKey);
+    const palette = FINGER_PALETTE[key];
+    return {
+      fill: isActive ? palette.fill : '#FDE5C8',
+      stroke: isActive ? palette.lip : '#7C4D2B'
     };
+  };
 
-    return (
-        <svg
-            width="140"
-            height="200"
-            viewBox="0 0 140 200"
-            className={`transition-all duration-150 ${className}`}
-            style={{
-                transform: side === 'right' ? 'scaleX(-1)' : 'none'
-            }}
-        >
-            {/* Palm */}
-            <ellipse
-                cx="70"
-                cy="150"
-                rx="55"
-                ry="45"
-                fill={INACTIVE_COLOR}
-                stroke={STROKE_COLOR}
-                strokeWidth="2"
-            />
-
-            {/* Pinky - Leftmost */}
-            <rect
-                x="12"
-                y="80"
-                width="20"
-                height="55"
-                rx="10"
-                fill={getFingerColor('pinky')}
-                stroke={STROKE_COLOR}
-                strokeWidth="2"
-                className="transition-colors duration-150"
-            />
-            <circle
-                cx="22"
-                cy="80"
-                r="10"
-                fill={getFingerColor('pinky')}
-                stroke={STROKE_COLOR}
-                strokeWidth="2"
-                className="transition-colors duration-150"
-            />
-
-            {/* Ring */}
-            <rect
-                x="36"
-                y="50"
-                width="22"
-                height="70"
-                rx="11"
-                fill={getFingerColor('ring')}
-                stroke={STROKE_COLOR}
-                strokeWidth="2"
-                className="transition-colors duration-150"
-            />
-            <circle
-                cx="47"
-                cy="50"
-                r="11"
-                fill={getFingerColor('ring')}
-                stroke={STROKE_COLOR}
-                strokeWidth="2"
-                className="transition-colors duration-150"
-            />
-
-            {/* Middle - Tallest */}
-            <rect
-                x="60"
-                y="35"
-                width="24"
-                height="80"
-                rx="12"
-                fill={getFingerColor('middle')}
-                stroke={STROKE_COLOR}
-                strokeWidth="2"
-                className="transition-colors duration-150"
-            />
-            <circle
-                cx="72"
-                cy="35"
-                r="12"
-                fill={getFingerColor('middle')}
-                stroke={STROKE_COLOR}
-                strokeWidth="2"
-                className="transition-colors duration-150"
-            />
-
-            {/* Index */}
-            <rect
-                x="86"
-                y="55"
-                width="22"
-                height="65"
-                rx="11"
-                fill={getFingerColor('index')}
-                stroke={STROKE_COLOR}
-                strokeWidth="2"
-                className="transition-colors duration-150"
-            />
-            <circle
-                cx="97"
-                cy="55"
-                r="11"
-                fill={getFingerColor('index')}
-                stroke={STROKE_COLOR}
-                strokeWidth="2"
-                className="transition-colors duration-150"
-            />
-
-            {/* Thumb - On the side */}
-            <ellipse
-                cx="118"
-                cy="155"
-                rx="15"
-                ry="35"
-                fill={getFingerColor('thumb')}
-                stroke={STROKE_COLOR}
-                strokeWidth="2"
-                className="transition-colors duration-150"
-                transform="rotate(-30, 118, 155)"
-            />
-        </svg>
-    );
+  return (
+    <svg
+      width="104"
+      height="132"
+      viewBox="0 0 120 150"
+      fill="none"
+      className={`transition-transform duration-150 ${className}`}
+      style={{ transform: side === 'right' ? 'scaleX(-1)' : 'none' }}
+      aria-hidden="true"
+    >
+      <rect x="34" y="116" width="52" height="22" rx="11" fill="#FDE5C8" stroke="#7C4D2B" strokeWidth="2.4" />
+      <rect x="22" y="65" width="76" height="58" rx="28" fill="#FDE5C8" stroke="#7C4D2B" strokeWidth="2.4" />
+      <rect x="14" y="42" width="15" height="44" rx="7.5" fill={getFingerStyle('pinky').fill} stroke={getFingerStyle('pinky').stroke} strokeWidth="2.4" className="transition-colors duration-150" />
+      <rect x="32" y="22" width="16" height="56" rx="8" fill={getFingerStyle('ring').fill} stroke={getFingerStyle('ring').stroke} strokeWidth="2.4" className="transition-colors duration-150" />
+      <rect x="51" y="12" width="17" height="64" rx="8.5" fill={getFingerStyle('middle').fill} stroke={getFingerStyle('middle').stroke} strokeWidth="2.4" className="transition-colors duration-150" />
+      <rect x="71" y="24" width="16" height="55" rx="8" fill={getFingerStyle('index').fill} stroke={getFingerStyle('index').stroke} strokeWidth="2.4" className="transition-colors duration-150" />
+      <rect x="86" y="78" width="24" height="16" rx="8" transform="rotate(-24 86 78)" fill={getFingerStyle('thumb').fill} stroke={getFingerStyle('thumb').stroke} strokeWidth="2.4" className="transition-colors duration-150" />
+    </svg>
+  );
 };

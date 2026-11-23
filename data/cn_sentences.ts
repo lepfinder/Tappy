@@ -512,5 +512,100 @@ export const LEVELS_CN_SENTENCES: Level[] = [
       { display: '所以我要学习', pinyin: ['suo', 'yi', 'wo', 'yao', 'xue', 'xi'], translation: 'So I must study' },
       { display: '实现我的愿望', pinyin: ['shi', 'xian', 'wo', 'de', 'yuan', 'wang'], translation: 'Realize my wish' }
     ]
+  },
+  // ==========================================
+  // PHASE 4: 小学高频成语、名言与趣味绕口令
+  // ==========================================
+  {
+    id: 'cn_s_31',
+    title: 'Animal Idioms 🦁',
+    description: '动物成语',
+    difficulty: 2,
+    challenges: [
+      { display: '画龙点睛', pinyin: ['hua', 'long', 'dian', 'jing'], translation: 'Add the finishing touch' },
+      { display: '守株待兔', pinyin: ['shou', 'zhu', 'dai', 'tu'], translation: 'Wait for a windfall' },
+      { display: '井底之蛙', pinyin: ['jing', 'di', 'zhi', 'wa'], translation: 'Frog in a well' },
+      { display: '狐假虎威', pinyin: ['hu', 'jia', 'hu', 'wei'], translation: 'Bully under another power' },
+      { display: '亡羊补牢', pinyin: ['wang', 'yang', 'bu', 'lao'], translation: 'Better late than never' },
+      { display: '马到成功', pinyin: ['ma', 'dao', 'cheng', 'gong'], translation: 'Instant success' },
+      { display: '如鱼得水', pinyin: ['ru', 'yu', 'de', 'shui'], translation: 'Like a fish in water' },
+      { display: '生龙活虎', pinyin: ['sheng', 'long', 'huo', 'hu'], translation: 'Full of vigor' }
+    ]
+  },
+  {
+    id: 'cn_s_32',
+    title: 'Number Idioms 🔢',
+    description: '数字成语',
+    difficulty: 2,
+    challenges: [
+      { display: '一心一意', pinyin: ['yi', 'xin', 'yi', 'yi'], translation: 'Wholeheartedly' },
+      { display: '三心二意', pinyin: ['san', 'xin', 'er', 'yi'], translation: 'Half-hearted' },
+      { display: '五颜六色', pinyin: ['wu', 'yan', 'liu', 'se'], translation: 'Colorful' },
+      { display: '七上八下', pinyin: ['qi', 'shang', 'ba', 'xia'], translation: 'In a flutter' },
+      { display: '九牛一毛', pinyin: ['jiu', 'niu', 'yi', 'mao'], translation: 'A drop in the ocean' },
+      { display: '十全十美', pinyin: ['shi', 'quan', 'shi', 'mei'], translation: 'Perfection' },
+      { display: '百发百中', pinyin: ['bai', 'fa', 'bai', 'zhong'], translation: 'Every shot hits the mark' },
+      { display: '千方百计', pinyin: ['qian', 'fang', 'bai', 'ji'], translation: 'Try every possible way' }
+    ]
+  },
+  {
+    id: 'cn_s_33',
+    title: 'Study Idioms 📚',
+    description: '勤学成语',
+    difficulty: 3,
+    challenges: [
+      { display: '学无止境', pinyin: ['xue', 'wu', 'zhi', 'jing'], translation: 'Learning has no end' },
+      { display: '持之以恒', pinyin: ['chi', 'zhi', 'yi', 'heng'], translation: 'Persevere steadily' },
+      { display: '专心致志', pinyin: ['zhuan', 'xin', 'zhi', 'zhi'], translation: 'Total concentration' },
+      { display: '勤能补拙', pinyin: ['qin', 'neng', 'bu', 'zhuo'], translation: 'Diligence makes up for weakness' },
+      { display: '水滴石穿', pinyin: ['shui', 'di', 'shi', 'chuan'], translation: 'Constant dripping wears away stone' },
+      { display: '温故知新', pinyin: ['wen', 'gu', 'zhi', 'xin'], translation: 'Review old to learn new' },
+      { display: '不耻下问', pinyin: ['bu', 'chi', 'xia', 'wen'], translation: 'Never ashamed to ask' },
+      { display: '博学多才', pinyin: ['bo', 'xue', 'duo', 'cai'], translation: 'Learned and talented' }
+    ]
+  },
+  {
+    id: 'cn_s_34',
+    title: 'Nature Idioms 🌈',
+    description: '四季与风景成语',
+    difficulty: 3,
+    challenges: [
+      { display: '春暖花开', pinyin: ['chun', 'nuan', 'hua', 'kai'], translation: 'Warm spring blossoms' },
+      { display: '鸟语花香', pinyin: ['niao', 'yu', 'hua', 'xiang'], translation: 'Birds sing and flowers bloom' },
+      { display: '绿树成荫', pinyin: ['lv', 'shu', 'cheng', 'yin'], translation: 'Lush shady green trees' },
+      { display: '秋高气爽', pinyin: ['qiu', 'gao', 'qi', 'shuang'], translation: 'Crisp clear autumn air' },
+      { display: '冰天雪地', pinyin: ['bing', 'tian', 'xue', 'di'], translation: 'World of ice and snow' },
+      { display: '山清水秀', pinyin: ['shan', 'qing', 'shui', 'xiu'], translation: 'Green hills and clear waters' },
+      { display: '风和日丽', pinyin: ['feng', 'he', 'ri', 'li'], translation: 'Gentle breeze and bright sun' },
+      { display: '五谷丰登', pinyin: ['wu', 'gu', 'feng', 'deng'], translation: 'Abundant harvest' }
+    ]
+  },
+  {
+    id: 'cn_s_35',
+    title: 'Inspiring Quotes 🏆',
+    description: '励志名言',
+    difficulty: 3,
+    challenges: [
+      { display: '好好学习天天向上', pinyin: ['hao', 'hao', 'xue', 'xi', 'tian', 'tian', 'xiang', 'shang'], translation: 'Study well and improve every day' },
+      { display: '书山有路勤为径', pinyin: ['shu', 'shan', 'you', 'lu', 'qin', 'wei', 'jing'], translation: 'Diligence is the path up the mountain of books' },
+      { display: '世上无难事', pinyin: ['shi', 'shang', 'wu', 'nan', 'shi'], translation: 'Nothing is impossible in the world' },
+      { display: '千里之行始于足下', pinyin: ['qian', 'li', 'zhi', 'xing', 'shi', 'yu', 'zu', 'xia'], translation: 'A journey of a thousand miles begins with one step' },
+      { display: '一寸光阴一寸金', pinyin: ['yi', 'cun', 'guang', 'yin', 'yi', 'cun', 'jin'], translation: 'Time is gold' },
+      { display: '坚持就是胜利', pinyin: ['jian', 'chi', 'jiu', 'shi', 'sheng', 'li'], translation: 'Persistence brings victory' }
+    ]
+  },
+  {
+    id: 'cn_s_36',
+    title: 'Tongue Twisters 🎉',
+    description: '趣味绕口令',
+    difficulty: 3,
+    challenges: [
+      { display: '四是四十是十', pinyin: ['si', 'shi', 'si', 'shi', 'shi', 'shi'], translation: 'Four is four, ten is ten' },
+      { display: '吃葡萄不吐葡萄皮', pinyin: ['chi', 'pu', 'tao', 'bu', 'tu', 'pu', 'tao', 'pi'], translation: 'Eat grapes without spitting skins' },
+      { display: '白石搭白塔', pinyin: ['bai', 'shi', 'da', 'bai', 'ta'], translation: 'White stones build a white tower' },
+      { display: '粉红墙上画凤凰', pinyin: ['fen', 'hong', 'qiang', 'shang', 'hua', 'feng', 'huang'], translation: 'Paint a phoenix on a pink wall' },
+      { display: '小花猫爱吃小鱼干', pinyin: ['xiao', 'hua', 'mao', 'ai', 'chi', 'xiao', 'yu', 'gan'], translation: 'Little tabby cat loves dried fish' },
+      { display: '小青蛙呱呱叫', pinyin: ['xiao', 'qing', 'wa', 'gua', 'gua', 'jiao'], translation: 'Little frog croaks loudly' }
+    ]
   }
 ];

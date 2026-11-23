@@ -42,6 +42,9 @@ export const TRANSLATIONS = {
       4: "Grade 4",
       5: "Grade 5",
       6: "Grade 6",
+      7: "Grade 7",
+      8: "Grade 8",
+      9: "Grade 9",
     },
     modes: {
       EN_LETTERS: { title: 'ABC Practice', desc: 'Learn where the keys are' },
@@ -51,7 +54,7 @@ export const TRANSLATIONS = {
       CN_SENTENCES: { title: 'Chinese Phrases', desc: 'Type full sentences' },
       CN_ESSAYS: { title: 'Short Essays', desc: 'Read & Type Stories' },
       CN_POEMS: { title: 'Ancient Poems', desc: 'Learn Elementary Poems' },
-      RACE_100M: { title: '100m Race', desc: 'Type fast to win!' },
+      RACE_100M: { title: 'Typing Games', desc: 'Apple Catch & Space Shooter!' },
     } as Record<GameMode, { title: string; desc: string }>
   },
   cn: {
@@ -94,6 +97,9 @@ export const TRANSLATIONS = {
       4: "四年级",
       5: "五年级",
       6: "六年级",
+      7: "七年级",
+      8: "八年级",
+      9: "九年级",
     },
     modes: {
       EN_LETTERS: { title: '字母练习', desc: '熟悉键盘位置' },
@@ -103,7 +109,7 @@ export const TRANSLATIONS = {
       CN_SENTENCES: { title: '中文短句', desc: '练习输入完整句子' },
       CN_ESSAYS: { title: '小学短文', desc: '人教版语文美文欣赏' },
       CN_POEMS: { title: '小学古诗', desc: '必背古诗词练习' },
-      RACE_100M: { title: '百米竞速', desc: '打字越快跑得越快！' },
+      RACE_100M: { title: '趣味游戏', desc: '快乐摘苹果、太空打字战机！' },
     } as Record<GameMode, { title: string; desc: string }>
   }
 };

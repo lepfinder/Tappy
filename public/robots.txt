@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+
+# 声明站点地图与面向 AI 引擎的产品说明文件
+Sitemap: /sitemap.xml
+# LLMs info: /llms.txt

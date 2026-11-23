@@ -37,7 +37,7 @@ export const LEVELS_EN_LETTERS: Level[] = [
   {
     id: 'en_l_03',
     title: 'Home Row - G & H',
-    description: 'G H - 中指延伸键位',
+    description: 'G H - 食指延伸键位',
     difficulty: 1,
     challenges: [
       { display: 'g' }, { display: 'g' }, { display: 'h' }, { display: 'h' },
@@ -185,6 +185,58 @@ export const LEVELS_EN_LETTERS: Level[] = [
       { display: 'daft zebras jump' },
       { display: 'sphinx of black quartz' },
       { display: 'judge my vow' }
+    ]
+  },
+  // ===== 第五阶段：大小写与标点进阶过渡 =====
+  {
+    id: 'en_l_15',
+    title: 'Shift & Capitals',
+    description: 'Shift 大小写组合专项',
+    difficulty: 3,
+    challenges: [
+      { display: 'A' }, { display: 'S' }, { display: 'D' }, { display: 'F' },
+      { display: 'J' }, { display: 'K' }, { display: 'L' }, { display: 'Hi' },
+      { display: 'Cat' }, { display: 'Dog' }, { display: 'Sun' }, { display: 'Star' },
+      { display: 'Tappy' }, { display: 'Hello World' }
+    ]
+  },
+  {
+    id: 'en_l_16',
+    title: 'Common Punctuation',
+    description: "常用标点专项 (, . ; ' ?)",
+    difficulty: 3,
+    challenges: [
+      { display: 'a, s, d' }, { display: 'j. k. l.' },
+      { display: 'hi, dad.' }, { display: 'yes, mom.' },
+      { display: "it's ok." }, { display: "let's go." },
+      { display: 'are you ok?' }, { display: 'is it fun?' },
+      { display: 'one; two; three.' }, { display: 'good job, kid.' }
+    ]
+  },
+  // ===== 第六阶段：盲打提速专项（弱指 + 高频词根） =====
+  {
+    id: 'en_l_17',
+    title: 'Weak Finger Drill',
+    description: '弱指强化专项 (无名指与小指)',
+    difficulty: 3,
+    challenges: [
+      { display: 'qa az ws sx' }, { display: 'pl lo op ol' },
+      { display: 'qaz wsx' }, { display: 'pl; olp' },
+      { display: 'quiz' }, { display: 'lazy' }, { display: 'pool' }, { display: 'slow' },
+      { display: 'wall' }, { display: 'play' }, { display: 'pizza' }, { display: 'puzzle' }
+    ]
+  },
+  {
+    id: 'en_l_18',
+    title: 'Speed Bigrams',
+    description: '高频词根提速 (th / in / er / ing)',
+    difficulty: 3,
+    challenges: [
+      { display: 'th he in er' }, { display: 'an re ed on' },
+      { display: 'ing tion' }, { display: 'the that this' },
+      { display: 'here there' }, { display: 'think thing' },
+      { display: 'reading writing' }, { display: 'morning spring' },
+      { display: 'action station' }, { display: 'together forever' }
     ]
   }
 ];

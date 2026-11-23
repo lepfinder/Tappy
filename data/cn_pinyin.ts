@@ -552,5 +552,62 @@ export const LEVELS_CN_PINYIN: Level[] = [
       { display: '答', pinyin: ['da'], translation: 'Answer' },
       { display: '做', pinyin: ['zuo'], translation: 'Do' }
     ]
+  },
+  // ==========================================
+  // PHASE 4: 语文拼音难点特训
+  // ==========================================
+  {
+    id: 'cn_p_31',
+    title: 'V-Key Special ✨',
+    description: 'v键专练 (ü变v)',
+    difficulty: 2,
+    challenges: [
+      { display: '女', pinyin: ['nv'], translation: 'Girl/Female' },
+      { display: '绿', pinyin: ['lv'], translation: 'Green' },
+      { display: '旅', pinyin: ['lv'], translation: 'Travel' },
+      { display: '律', pinyin: ['lv'], translation: 'Rule/Rhythm' },
+      { display: '虑', pinyin: ['lv'], translation: 'Consider' },
+      { display: '驴', pinyin: ['lv'], translation: 'Donkey' },
+      { display: '滤', pinyin: ['lv'], translation: 'Filter' },
+      { display: '略', pinyin: ['lve'], translation: 'Brief/Strategy' },
+      { display: '率', pinyin: ['lv'], translation: 'Rate' },
+      { display: '缕', pinyin: ['lv'], translation: 'Strand' }
+    ]
+  },
+  {
+    id: 'cn_p_32',
+    title: 'Flat vs Retroflex 🗣️',
+    description: '平翘舌大挑战 (z/c/s vs zh/ch/sh)',
+    difficulty: 3,
+    challenges: [
+      { display: '字', pinyin: ['zi'], translation: 'Character' },
+      { display: '纸', pinyin: ['zhi'], translation: 'Paper' },
+      { display: '草', pinyin: ['cao'], translation: 'Grass' },
+      { display: '炒', pinyin: ['chao'], translation: 'Stir-fry' },
+      { display: '四', pinyin: ['si'], translation: 'Four' },
+      { display: '十', pinyin: ['shi'], translation: 'Ten' },
+      { display: '早', pinyin: ['zao'], translation: 'Early' },
+      { display: '找', pinyin: ['zhao'], translation: 'Look for' },
+      { display: '三', pinyin: ['san'], translation: 'Three' },
+      { display: '山', pinyin: ['shan'], translation: 'Mountain' }
+    ]
+  },
+  {
+    id: 'cn_p_33',
+    title: 'N vs NG Sounds 🎵',
+    description: '前后鼻音大挑战 (n vs ng)',
+    difficulty: 3,
+    challenges: [
+      { display: '蓝', pinyin: ['lan'], translation: 'Blue' },
+      { display: '狼', pinyin: ['lang'], translation: 'Wolf' },
+      { display: '分', pinyin: ['fen'], translation: 'Minute/Share' },
+      { display: '风', pinyin: ['feng'], translation: 'Wind' },
+      { display: '心', pinyin: ['xin'], translation: 'Heart' },
+      { display: '星', pinyin: ['xing'], translation: 'Star' },
+      { display: '真', pinyin: ['zhen'], translation: 'Real/True' },
+      { display: '正', pinyin: ['zheng'], translation: 'Upright' },
+      { display: '金', pinyin: ['jin'], translation: 'Gold' },
+      { display: '京', pinyin: ['jing'], translation: 'Capital' }
+    ]
   }
 ];

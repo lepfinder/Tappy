@@ -13,6 +13,7 @@ import { db, PracticeRecord } from '../db';
 import { useUserStore } from '../store/useUserStore';
 import { useGameStore } from '../store/useGameStore';
 import { TRANSLATIONS } from '../i18n';
+import { UserAvatar } from './UserAvatar';
 
 // Mode name mapping
 const MODE_NAMES: Record<string, { cn: string; en: string; color: string }> = {
@@ -23,8 +24,26 @@ const MODE_NAMES: Record<string, { cn: string; en: string; color: string }> = {
     'CN_SENTENCES': { cn: '中文短句', en: 'Sentences', color: '#9B59B6' },
     'CN_ESSAYS': { cn: '小学短文', en: 'Short Essays', color: '#EC4899' },
     'CN_POEMS': { cn: '小学古诗', en: 'Poems', color: '#14B8A6' },
-    'RACE_100M': { cn: '百米竞速', en: 'Race', color: '#F97316' },
+    'RACE_100M': { cn: '趣味游戏', en: 'Games', color: '#EC4899' },
 };
+
+// 将趣味游戏厅与自定义听写词表的 levelId 翻译为可读名称
+function formatArcadeRecordName(levelId: string, language: string): string | null {
+    if (levelId.startsWith('custom_')) {
+        return language === 'cn' ? '听写词表' : 'Dictation';
+    }
+    if (!levelId.startsWith('arcade_')) return null;
+    const map: Record<string, { cn: string; en: string }> = {
+        'apple-catch': { cn: '摘苹果', en: 'Apples' },
+        'frog-hop': { cn: '青蛙过河', en: 'Frog Hop' },
+        'space-shooter': { cn: '太空战机', en: 'Space' },
+        'whack-a-mole': { cn: '打地鼠', en: 'Moles' }
+    };
+    const parts = levelId.split('_');
+    const game = map[parts[1]];
+    if (!game) return null;
+    return language === 'cn' ? game.cn : game.en;
+}
 
 // Stats interface
 interface FullStats {
@@ -248,10 +267,10 @@ const AICoach: React.FC<{
                 </div>
                 <div>
                     <h3 className="font-bold text-gray-800">
-                        {language === 'cn' ? 'AI 性能教练' : 'AI Performance Coach'}
+                        {language === 'cn' ? '智能学习建议' : 'Learning Insights'}
                     </h3>
                     <p className="text-xs text-gray-500">
-                        {language === 'cn' ? '智能分析你的练习数据' : 'Smart analysis of your practice data'}
+                        {language === 'cn' ? '根据近期练习数据生成的贴心小贴士' : 'Personalized tips based on your recent practice'}
                     </p>
                 </div>
             </div>
@@ -337,26 +356,15 @@ export const StatsPage: React.FC<StatsPageProps> = ({ onBack }) => {
     const hasData = stats.totalSessions > 0;
 
     return (
-        <div className="w-full max-w-4xl mx-auto space-y-6 pb-24">
-            {/* Back Button */}
-            <motion.button
-                onClick={onBack}
-                className="flex items-center gap-2 text-gray-500 hover:text-kid-purple transition-colors"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-            >
-                <ArrowLeft size={20} />
-                <span>{t.back}</span>
-            </motion.button>
-
+        <div className="w-full max-w-6xl mx-auto px-2 sm:px-4 pt-5 sm:pt-7 space-y-6 pb-12">
             {/* Header */}
             <motion.div
                 className="text-center"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
             >
-                <h1 className="text-2xl font-bold text-gray-800 flex items-center justify-center gap-2">
-                    <BarChart3 className="text-kid-purple" />
+                <h1 className="text-2xl font-cartoon font-bold text-gray-800 flex items-center justify-center gap-2">
+                    <img src="/icons/fluent3d/trophy.webp" alt="" className="w-7 h-7 object-contain" />
                     {t.title}
                 </h1>
                 <p className="text-gray-500 text-sm mt-1">{t.subtitle}</p>
@@ -368,7 +376,11 @@ export const StatsPage: React.FC<StatsPageProps> = ({ onBack }) => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                 >
-                    <div className="text-6xl mb-4">📊</div>
+                    <img
+                        src="/icons/fluent3d/trophy.webp"
+                        alt=""
+                        className="w-16 h-16 mx-auto mb-4 opacity-80 object-contain"
+                    />
                     <p className="text-gray-500">{t.noData}</p>
                 </motion.div>
             ) : (
@@ -480,8 +492,8 @@ export const StatsPage: React.FC<StatsPageProps> = ({ onBack }) => {
                                     </AreaChart>
                                 </ResponsiveContainer>
                             ) : (
-                                <div className="h-[200px] flex items-center justify-center text-gray-400">
-                                    No trend data available
+                                <div className="h-[200px] flex items-center justify-center text-gray-400 text-sm">
+                                    {language === 'cn' ? '暂无趋势数据' : 'No trend data yet'}
                                 </div>
                             )}
                         </motion.div>
@@ -522,8 +534,8 @@ export const StatsPage: React.FC<StatsPageProps> = ({ onBack }) => {
                                     </PieChart>
                                 </ResponsiveContainer>
                             ) : (
-                                <div className="h-[180px] flex items-center justify-center text-gray-400">
-                                    No data
+                                <div className="h-[180px] flex items-center justify-center text-gray-400 text-sm">
+                                    {language === 'cn' ? '暂无分布数据' : 'No data yet'}
                                 </div>
                             )}
                             {/* Legend */}
@@ -535,7 +547,7 @@ export const StatsPage: React.FC<StatsPageProps> = ({ onBack }) => {
                                             style={{ backgroundColor: item.color }}
                                         />
                                         <span className="text-gray-500">
-                                            {MODE_NAMES[item.name]?.[language === 'cn' ? 'cn' : 'en']?.slice(0, 4) || item.name}
+                                            {MODE_NAMES[item.name]?.[language === 'cn' ? 'cn' : 'en'] || item.name}
                                         </span>
                                     </div>
                                 ))}
@@ -572,7 +584,7 @@ export const StatsPage: React.FC<StatsPageProps> = ({ onBack }) => {
                                             }`}>
                                             {index + 1}
                                         </div>
-                                        <span className="text-2xl">{user.avatar}</span>
+                                        <UserAvatar avatar={user.avatar} size={28} />
                                         <div className="flex-1">
                                             <div className="font-medium text-gray-700 text-sm">{user.name}</div>
                                             <div className="text-xs text-gray-400">{user.sessions} {t.sessions}</div>
@@ -615,7 +627,9 @@ export const StatsPage: React.FC<StatsPageProps> = ({ onBack }) => {
                                                         className="inline-block px-2 py-0.5 rounded-full text-xs font-medium text-white"
                                                         style={{ backgroundColor: MODE_NAMES[record.mode]?.color || '#888' }}
                                                     >
-                                                        {MODE_NAMES[record.mode]?.[language === 'cn' ? 'cn' : 'en']?.slice(0, 4) || record.mode}
+                                                        {formatArcadeRecordName(record.levelId, language) ||
+                                                            MODE_NAMES[record.mode]?.[language === 'cn' ? 'cn' : 'en'] ||
+                                                            record.mode}
                                                     </span>
                                                 </td>
                                                 <td className="text-center font-medium text-gray-700">{record.wpm}</td>

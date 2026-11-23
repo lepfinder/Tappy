@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, Mail } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X, Mail, Coffee, Heart, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   GameController,
   BookOpenText,
@@ -13,10 +13,12 @@ import {
 } from '@phosphor-icons/react';
 import { useGameStore } from '../store/useGameStore';
 
-// Import bear logo
-const bearLogo = '/images/bear_logo.png';
+// 使用轻量 WebP 小熊 Logo
+const bearLogo = '/images/bear_logo.webp';
 // Import WeChat QR code
 const weixinQrcode = '/images/weixin_qrcode.jpg';
+// 微信赞赏码
+const wxpayQrcode = '/wxpayjpg.jpg';
 
 interface AboutModalProps {
   isOpen: boolean;
@@ -25,6 +27,25 @@ interface AboutModalProps {
 
 export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
   const { language } = useGameStore();
+  const [showSponsor, setShowSponsor] = useState(false);
+
+  // 关闭弹窗时自动收起赞赏码，保持每次打开简洁克制
+  useEffect(() => {
+    if (!isOpen) setShowSponsor(false);
+  }, [isOpen]);
+
+  // 支持按 Esc 键快捷关闭弹窗
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -66,8 +87,8 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
       color: 'text-amber-500',
       bgColor: 'bg-amber-100/90',
       borderColor: 'border-amber-200/60',
-      title: '竞速游戏',
-      desc: '打字越快，跑得越快！',
+      title: '趣味打字游戏',
+      desc: '快乐摘苹果、太空打字战机',
     },
     {
       icon: ChartBar,
@@ -115,8 +136,8 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
       color: 'text-amber-500',
       bgColor: 'bg-amber-100/90',
       borderColor: 'border-amber-200/60',
-      title: 'Racing Game',
-      desc: 'Type faster to run faster!',
+      title: 'Typing Arcade Games',
+      desc: 'Apple Catch & Space Shooter',
     },
     {
       icon: ChartBar,
@@ -137,6 +158,11 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
     contactTitle: '联系我',
     contactDesc: '如果有任何问题和建议，欢迎联系我！',
     wechatLabel: '微信扫码',
+    sponsorTitle: '请作者喝杯咖啡',
+    sponsorDesc: 'Tappy 永久免费、无广告。如果它帮到了你和孩子，欢迎请作者喝杯咖啡，支持持续打磨更多有趣内容。',
+    sponsorBtnOpen: '请作者喝杯咖啡',
+    sponsorBtnClose: '收起赞赏码',
+    sponsorHint: '微信扫一扫 · 金额随意，感谢支持 ❤️',
   } : {
     title: 'About Tappy',
     slogan: 'Type Happy, Grow Fast!',
@@ -146,6 +172,11 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
     contactTitle: 'Contact Me',
     contactDesc: 'If you have any questions or suggestions, feel free to reach out!',
     wechatLabel: 'WeChat',
+    sponsorTitle: 'Buy Me a Coffee',
+    sponsorDesc: 'Tappy is 100% free and ad-free. If it helps your family, consider buying the author a coffee to support future updates!',
+    sponsorBtnOpen: 'Buy Me a Coffee',
+    sponsorBtnClose: 'Hide QR Code',
+    sponsorHint: 'Scan with WeChat · Thank you for your support ❤️',
   };
 
   return (
@@ -211,6 +242,44 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
           <div className="flex items-center justify-center gap-1.5 text-center text-gray-600 text-sm font-semibold">
             <span>{content.footer}</span>
             <Sparkle weight="duotone" className="w-4 h-4 text-amber-400 animate-twinkle" />
+          </div>
+
+          {/* Sponsor / 请作者喝咖啡（默认收起，克制得体） */}
+          <div className="bg-gradient-to-br from-amber-50/90 via-[#FFFBF2] to-orange-50/80 rounded-2xl p-4 sm:p-5 border border-amber-200/70 text-center">
+            <div className="flex items-center justify-center gap-2 mb-1.5">
+              <div className="w-7 h-7 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center">
+                <Coffee size={15} />
+              </div>
+              <h3 className="font-extrabold text-[#2B211B] text-base">{content.sponsorTitle}</h3>
+            </div>
+            <p className="text-[#7A6A5F] text-xs leading-relaxed max-w-md mx-auto mb-3.5">
+              {content.sponsorDesc}
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setShowSponsor((prev) => !prev)}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 text-white font-extrabold text-sm shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-95"
+            >
+              <Heart size={15} className="fill-white/90 text-white" />
+              <span>{showSponsor ? content.sponsorBtnClose : content.sponsorBtnOpen}</span>
+              {showSponsor ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+            </button>
+
+            {showSponsor && (
+              <div className="mt-4 pt-4 border-t border-amber-200/60 flex flex-col items-center animate-fade-in">
+                <div className="p-2.5 bg-white rounded-2xl shadow-md border border-amber-100">
+                  <img
+                    src={wxpayQrcode}
+                    alt="WeChat Reward QR Code"
+                    className="w-44 sm:w-48 h-auto rounded-xl object-contain"
+                  />
+                </div>
+                <span className="text-xs font-bold text-amber-800/80 mt-2.5">
+                  {content.sponsorHint}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Contact Section */}

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X, Volume2, VolumeX, Download, Upload, CheckCircle, AlertCircle, MessageSquare } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
 import { useUserStore } from '../store/useUserStore';
@@ -24,6 +24,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     const [exportStatus, setExportStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [statusMessage, setStatusMessage] = useState('');
+
+    // 支持按 Esc 键快捷关闭弹窗
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                onClose();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
 
     if (!isOpen) return null;
 
@@ -213,15 +226,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
                         {/* Toggle Switch */}
                         <button
+                            type="button"
                             onClick={() => setSoundEnabled(!soundEnabled)}
                             className={`
-                                relative w-14 h-8 rounded-full transition-colors duration-300
+                                relative w-14 h-8 rounded-full transition-colors duration-300 cursor-pointer
                                 ${soundEnabled ? 'bg-kid-blue' : 'bg-gray-300'}
                             `}
                         >
                             <span
                                 className={`
-                                    absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300
+                                    absolute top-1 left-0 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300
                                     ${soundEnabled ? 'translate-x-7' : 'translate-x-1'}
                                 `}
                             />
@@ -237,15 +251,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
                         {/* Toggle Switch */}
                         <button
+                            type="button"
                             onClick={() => setTtsEnabled(!ttsEnabled)}
                             className={`
-                                relative w-14 h-8 rounded-full transition-colors duration-300
+                                relative w-14 h-8 rounded-full transition-colors duration-300 cursor-pointer
                                 ${ttsEnabled ? 'bg-kid-purple' : 'bg-gray-300'}
                             `}
                         >
                             <span
                                 className={`
-                                    absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300
+                                    absolute top-1 left-0 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300
                                     ${ttsEnabled ? 'translate-x-7' : 'translate-x-1'}
                                 `}
                             />
