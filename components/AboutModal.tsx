@@ -12,6 +12,7 @@ import {
   Sparkle,
 } from '@phosphor-icons/react';
 import { useGameStore } from '../store/useGameStore';
+import { APP_VERSION } from '../data/changelog';
 
 // 使用轻量 WebP 小熊 Logo
 const bearLogo = '/images/bear_logo.webp';
@@ -312,10 +313,22 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
             </div>
           </div>
 
-          {/* Branding */}
-          <div className="text-center pt-2 border-t border-gray-100">
+          {/* Branding & Version Changelog */}
+          <div className="text-center pt-2 border-t border-gray-100 flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                window.dispatchEvent(new CustomEvent('tappy:open-changelog'));
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100 text-[#1E7F5C] text-xs font-extrabold transition-colors cursor-pointer"
+            >
+              <span>v{APP_VERSION}</span>
+              <span>·</span>
+              <span>{language === 'cn' ? '查看更新日志' : 'What’s New'}</span>
+            </button>
             <p className="text-xs text-gray-400">
-              Tappy — <span className="italic">Tap your way to typing mastery!</span> 🐻✨
+              Tappy — <span className="italic">Tap your way to typing mastery!</span>
             </p>
           </div>
         </div>

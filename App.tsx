@@ -3,6 +3,7 @@ import { HomeScreen } from './components/HomeScreen';
 import { UserSwitcher } from './components/UserSwitcher';
 import { UserOnboardingModal } from './components/UserOnboardingModal';
 import { UserSwitchTransition } from './components/UserSwitchTransition';
+import { VersionUpdateManager } from './components/VersionUpdateManager';
 import { useGameStore } from './store/useGameStore';
 import { useUserStore } from './store/useUserStore';
 import { TRANSLATIONS } from './i18n';
@@ -176,8 +177,9 @@ const App: React.FC = () => {
         {isAboutOpen && <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />}
       </Suspense>
 
-      {/* 用户切换过场 */}
+      {/* 用户切换过场与版本更新通知 */}
       <UserSwitchTransition />
+      <VersionUpdateManager />
 
       {/* 右上角全局工具栏：用户切换 · 语言 · 设置 · 关于 */}
       {!isPracticeView && (

@@ -12,7 +12,7 @@
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       font-src 'self' https://fonts.gstatic.com;
       img-src 'self' data: blob: https://www.google-analytics.com https://hm.baidu.com;
-      connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://hm.baidu.com;
+      connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://www.google-analytics.com https://analytics.google.com https://hm.baidu.com;
     """
     # 其他安全头
     X-Frame-Options = "DENY"
