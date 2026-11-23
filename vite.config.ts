@@ -137,21 +137,11 @@ export default defineConfig(({ mode }) => {
       })
     ],
     build: {
+      chunkSizeWarningLimit: 700,
       rollupOptions: {
         output: {
+          // 仅手动拆分无 React 依赖的纯教材数据，第三方库交由 Rollup + React.lazy 自动安全分包，避免跨 chunk 循环初始化
           manualChunks(id) {
-            if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
-              return 'vendor-charts';
-            }
-            if (id.includes('node_modules/framer-motion')) {
-              return 'vendor-motion';
-            }
-            if (id.includes('node_modules/lucide-react') || id.includes('node_modules/@phosphor-icons')) {
-              return 'vendor-icons';
-            }
-            if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
-              return 'vendor-react';
-            }
             if (id.includes('/data/cn_poems') || id.includes('/data/cn_essays')) {
               return 'data-cn-curriculum';
             }
